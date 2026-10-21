@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>محاكي محركات المغناطيس الدائم</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column on phones — motor first, controls under it, then table + waveform; two columns from 900px */
+:root{
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#b5651d; --steel:#c9d3d7; --steel-d:#8d9ca2;
+  --ok:#2e7d4f; --bad:#b23b3b;
+  --f-body:"Cairo", "Segoe UI", Tahoma, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;direction:rtl;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 32px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:2px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
+.grid{display:grid;gap:16px}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:15px;color:var(--teal)}
+.motor svg{direction:ltr;width:100%;max-width:380px;margin:0 auto;display:block}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.readout div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.readout b{display:block;font-family:var(--f-mono);font-size:18px;color:var(--fg);direction:ltr}
+.readout span{font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:8px 16px;cursor:pointer;min-height:42px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+label{font-size:13px;color:var(--muted)}
+select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+input[type=range]{accent-color:var(--teal);width:140px}
+.formula{font-family:var(--f-mono);direction:ltr;text-align:center;background:var(--teal-soft);border-radius:8px;padding:8px;font-size:clamp(13px,3.6vw,16px);overflow-wrap:anywhere}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;direction:ltr;margin:0 auto;font-family:var(--f-mono);font-size:15px}
+th,td{border:1px solid var(--line);padding:3px 14px;text-align:center}
+th{color:var(--teal);background:var(--teal-soft)}
+td.n{color:var(--muted);font-size:12px;border:0;padding-inline:6px}
+tr.cur td:not(.n){background:var(--teal);color:#fff}
+.wave{overflow-x:auto;direction:ltr}
+.wave svg{display:block;width:100%}
+.note{font-size:13px;color:var(--muted);margin:0}
+.predict{border:1px dashed var(--teal);border-radius:10px;padding:10px;display:grid;gap:8px}
+.predict[hidden]{display:none!important}
+.opts{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
+.opts button{font-family:var(--f-mono);font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
+.fb{font-size:14px;margin:0;min-height:1.7em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-left:4px}
+footer{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:4px 14px}
+.tabs a[aria-current="page"]{background:var(--teal);color:#fff}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto}
+.warn{color:var(--bad)}
+</style>
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الأولى</span>
+    <h1 id="h1">محرك الخطوة ذو الأقطاب المغناطيسية الدائمة</h1>
+    <p class="lead" id="lead"></p>
+    <nav class="tabs" aria-label="نوع المحرك">
+      <a href="#pm" id="tPm">المغناطيس الدائم — الشكل (1-8)</a>
+      <a href="#hybrid" id="tHy">الهجين — الشكل (1-12)</a>
+    </nav>
+  </header>
+  <div class="grid">
+    <section class="panel motor" aria-label="المحرك">
+      <h2>المحرك</h2>
+      <svg id="motor" viewBox="0 0 320 320" role="img" aria-label="رسم المحرك وموضع الدوار"></svg>
+      <div class="legend" id="legend"></div>
+      <div class="readout">
+        <div><b id="rStep">45°</b><span>زاوية الخطوة</span></div>
+        <div><b id="rAngle">0°</b><span>موضع الدوار</span></div>
+        <div><b id="rCount">0</b><span>عدد الخطوات</span></div>
+      </div>
+    </section>
+    <section class="panel" aria-label="التحكم">
+      <h2>التحكم</h2>
+      <div class="row">
+        <div class="seg" role="group" aria-label="طريقة التغذية">
+          <button id="mFull" aria-pressed="true">خطوة كاملة</button>
+          <button id="mHalf" aria-pressed="false">نصف خطوة</button>
+          <button id="mTwo" aria-pressed="false" hidden>المجموعتان معاً</button>
+        </div>
+        <div class="seg" role="group" aria-label="الاتجاه">
+          <button id="dCcw" aria-pressed="true">ضد عقارب الساعة</button>
+          <button id="dCw" aria-pressed="false">مع عقارب الساعة</button>
+        </div>
+      </div>
+      <div class="formula" id="formula"></div>
+      <div class="row">
+        <button class="btn" id="next">الخطوة التالية</button>
+        <button class="btn ghost" id="play">تشغيل تلقائي</button>
+        <button class="btn ghost" id="reset">إعادة</button>
+      </div>
+      <div class="row">
+        <label for="speed">سرعة التشغيل التلقائي</label>
+        <input type="range" id="speed" min="1" max="6" value="2" aria-label="خطوات في الثانية">
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="noRev"> تجربة: التغذية دون عكس القطبية</label>
+      </div>
+      <p class="note" id="explain" aria-live="polite"></p>
+      <div id="torqueBox" hidden>
+        <p class="note"><b>حساب العزم في الحقيبة</b> عند فصل المجموعة A وتغذية المجموعة B والدوار في الوضع (أ)، المعادلتان (1-2) و(1-3):</p>
+        <div class="calc">T = Tm [ sin18° + sin90° − sin54° + cos18° − cos54° ]<br>T = Tm [ 0.309 + 1.0 − 0.809 + 0.951 − 0.588 ] = 0.863 Tm</div>
+        <p class="note">التجاذب بين قطبين مختلفين يتبع جيب الزاوية، والتنافر بين قطبين متشابهين يتبع جيب تمامها. المحصلة موجبة، فيخطو الدوار 18° ضد عقارب الساعة. جرّب الخطوة الأولى وراقب ذلك.</p>
+      </div>
+    </section>
+    <section class="panel" aria-label="جدول التسلسل">
+      <h2 id="tblTitle">جدول التسلسل المنطقي</h2>
+      <div class="tbl"><table id="tbl"></table></div>
+      <p class="note">1 = تغذية بالقطبية الموجبة، −1 = تغذية بقطبية معكوسة، 0 = مفصولة.</p>
+    </section>
+    <section class="panel" aria-label="موجات الجهد">
+      <h2>موجات الجهد على المجموعات</h2>
+      <div class="wave"><svg id="wave" role="img" aria-label="موجات الجهد"></svg></div>
+      <p class="note">رُسمت الموجات لدورتين من الجدول، والعمود المظلل هو الخطوة الحالية.</p>
+    </section>
+  </div>
+  <footer id="foot"></footer>
+</div>
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg', $ = id => document.getElementById(id);
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = v => (Math.round(v * 10) / 10).toString().replace(/\.0$/, '');
+const CFG = {
+  pm: { m: 2, a: [0, 45], step: 45, title: 'محرك الخطوة ذو الأقطاب المغناطيسية الدائمة',
+        lead: 'الدوار مغناطيس دائم بأربعة أقطاب. لاحظ لماذا يجب عكس قطبية التغذية ليستمر الدوار في الدوران، وجرّب ما يحدث دون عكسها.',
+        formula: 'θ = 360 / (N · P) = 360 / (2 × 4) = 45°',
+        foot: 'المرجع: الحقيبة التدريبية — القسم (1-3)، الجدولان (1-5) و(1-6)، والأشكال (1-8) إلى (1-10). الأهداف 1-5، 1-6، 1-7، 1-11، 1-12.' },
+  hybrid: { m: 5, a: [0, 90], step: 18, title: 'محرك الخطوة الهجين',
+        lead: 'دوار بمغناطيس دائم محوري، وعلى طرفيه خمسة أسنان جنوبية وخمسة شمالية منحرفة عنها. يظهر الطرفان جنباً إلى جنب كما في الشكل (1-12).',
+        formula: 'θ = 360 / (N · P) = 360 / (2 × 10) = 18°',
+        foot: 'المرجع: الحقيبة التدريبية — القسم (1-4)، المعادلات (1-1) إلى (1-3)، والجداول (1-5) إلى (1-8)، والشكلان (1-12) و(1-13). الأهداف 1-8 إلى 1-11.' } };
+let kind = 'pm', C = CFG.pm, mode = 'full', ccw = true, noRev = false;
+let seq = [], idx = 0, steps = 0, theta = 0, omega = 0, playing = null, running = false, last = 0;
+
+function buildSeq() {
+  let s;
+  if (mode === 'full') s = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  else if (mode === 'half') s = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  else s = [[1, 1], [-1, 1], [-1, -1], [1, -1]];
+  if (!ccw) s = mode === 'two' ? [[1, 1], [1, -1], [-1, -1], [-1, 1]] : [s[0], ...s.slice(1).reverse()];
+  if (noRev) s = s.map(r => r.map(Math.abs));
+  return s;
+}
+// rotor potential U = -sum s_g cos(m(theta - a_g))  (degrees); torque = -dU/dtheta
+const torque = t => { const st = seq[idx]; let q = 0; for (let g = 0; g < 2; g++) if (st[g]) q -= st[g] * Math.sin(C.m * (t - C.a[g]) * Math.PI / 180); return q; };
+
+// ---------- drawing ----------
+const svg = $('motor'); let rotors = [], poles = [];
+const pt = (cx, cy, r, a) => [cx - r * Math.sin(a * Math.PI / 180), cy - r * Math.cos(a * Math.PI / 180)];
+function statorRing(cx, cy, R, Ri, rf, list, hw, labelR) {
+  el('circle', { cx, cy, r: R, fill: 'var(--bg)', stroke: 'var(--steel-d)', 'stroke-width': 2 }, svg);
+  el('circle', { cx, cy, r: Ri, fill: 'var(--surface)', stroke: 'var(--steel-d)', 'stroke-width': 1.2 }, svg);
+  for (const p of list) {
+    const q = [pt(cx, cy, Ri + 1, p.a - hw), pt(cx, cy, Ri + 1, p.a + hw), pt(cx, cy, rf, p.a + hw - 1), pt(cx, cy, rf, p.a - hw + 1)];
+    p.poly = el('polygon', { points: q.map(v => v.join(',')).join(' '), fill: 'var(--steel)', stroke: 'var(--steel-d)', 'stroke-width': 1.2 }, svg);
+    const [lx, ly] = pt(cx, cy, labelR, p.a);
+    p.lab = el('text', { x: lx, y: ly + 4, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: 'var(--steel-d)', 'font-family': 'var(--f-mono)' }, svg); p.lab.textContent = p.name;
+    const [px, py] = pt(cx, cy, (Ri + rf) / 2, p.a);
+    p.pol = el('text', { x: px, y: py + 4, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#fff', 'font-family': 'var(--f-mono)' }, svg);
+    poles.push(p);
+  }
+}
+function drawPM() {
+  const cx = 160, cy = 160; poles = []; rotors = [];
+  const list = [];
+  [0, 90, 180, 270].forEach((a, j) => list.push({ a, g: 0, sign: j % 2 ? -1 : 1, name: 'A' }));
+  [45, 135, 225, 315].forEach((a, j) => list.push({ a, g: 1, sign: j % 2 ? -1 : 1, name: 'B' }));
+  statorRing(cx, cy, 146, 122, 92, list, 13, 134);
+  const g = el('g', {}, svg);
+  for (let k = 0; k < 4; k++) {
+    const a0 = k * 90 - 45, a1 = k * 90 + 45, [x0, y0] = pt(cx, cy, 84, a0), [x1, y1] = pt(cx, cy, 84, a1);
+    const S = k % 2 === 0;
+    el('path', { d: `M${cx},${cy} L${x0},${y0} A84,84 0 0 0 ${x1},${y1} Z`, fill: S ? 'var(--teal)' : 'var(--teal-soft)', stroke: 'var(--fg)', 'stroke-width': 1.2 }, g);
+    const [tx, ty] = pt(cx, cy, 52, k * 90);
+    const t = el('text', { x: tx, y: ty + 6, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 700, fill: S ? '#fff' : 'var(--fg)', 'font-family': 'var(--f-mono)' }, g); t.textContent = S ? 'S' : 'N';
+  }
+  const [mx, my] = pt(cx, cy, 78, 0); el('circle', { cx: mx, cy: my, r: 6, fill: 'var(--mark)', stroke: '#fff', 'stroke-width': 1.5 }, g);
+  el('circle', { cx, cy, r: 5, fill: 'var(--fg)' }, g);
+  rotors.push({ g, cx, cy, off: 0 });
+  $('legend').innerHTML = '<span><i style="background:var(--teal)"></i>قطب مغذّى / قطب جنوبي للدوار</span><span><i style="background:var(--teal-soft);border:1px solid var(--line)"></i>قطب شمالي للدوار</span><span><i style="background:var(--mark);border-radius:50%"></i>علامة لتتبع الحركة</span>';
+}
+function drawHybrid() {
+  poles = []; rotors = [];
+  const ends = [{ cx: 240, label: 'الطرف الجنوبي', pol: 'S', off: 0 }, { cx: 80, label: 'الطرف الشمالي', pol: 'N', off: 36 }];
+  for (const e of ends) {
+    const cy = 92;
+    const list = [{ a: 0, g: 0, sign: 1, name: 'A' }, { a: 180, g: 0, sign: -1, name: "A'" }, { a: 90, g: 1, sign: 1, name: 'B' }, { a: 270, g: 1, sign: -1, name: "B'" }];
+    statorRing(e.cx, cy, 76, 62, 44, list, 14, 70);
+    const g = el('g', {}, svg);
+    el('circle', { cx: e.cx, cy, r: 22, fill: e.pol === 'S' ? 'var(--teal)' : 'var(--teal-soft)', stroke: 'var(--fg)', 'stroke-width': 1.1 }, g);
+    for (let k = 0; k < 5; k++) {
+      const a = k * 72, q = [pt(e.cx, cy, 21, a - 16), pt(e.cx, cy, 21, a + 16), pt(e.cx, cy, 40, a + 9), pt(e.cx, cy, 40, a - 9)];
+      el('polygon', { points: q.map(v => v.join(',')).join(' '), fill: e.pol === 'S' ? 'var(--teal)' : 'var(--teal-soft)', stroke: 'var(--fg)', 'stroke-width': 1.1 }, g);
+      const [tx, ty] = pt(e.cx, cy, 31, a);
+      const t = el('text', { x: tx, y: ty + 3.5, 'text-anchor': 'middle', 'font-size': 8.5, 'font-weight': 700, fill: e.pol === 'S' ? '#fff' : 'var(--fg)', 'font-family': 'var(--f-mono)' }, g); t.textContent = e.pol + (k + 1);
+    }
+    const [mx, my] = pt(e.cx, cy, 44, 0); el('circle', { cx: mx, cy: my, r: 4, fill: 'var(--mark)' }, g);
+    el('circle', { cx: e.cx, cy, r: 3, fill: 'var(--fg)' }, g);
+    rotors.push({ g, cx: e.cx, cy, off: e.off });
+    const t = el('text', { x: e.cx, y: 196, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--f-body)', direction: 'rtl' }, svg); t.textContent = e.label + ' للدوار';
+  }
+  $('legend').innerHTML = '<span><i style="background:var(--teal)"></i>قطب مغذّى / أسنان جنوبية</span><span><i style="background:var(--teal-soft);border:1px solid var(--line)"></i>أسنان شمالية</span><span><i style="background:var(--mark);border-radius:50%"></i>السن الأول لتتبع الحركة</span>';
+}
+function drawMotor() {
+  svg.textContent = '';
+  svg.setAttribute('viewBox', kind === 'pm' ? '0 0 320 320' : '0 0 320 212');
+  kind === 'pm' ? drawPM() : drawHybrid();
+  paintPoles(); place();
+}
+function paintPoles() {
+  const st = seq[idx];
+  for (const p of poles) {
+    const v = st[p.g], on = v !== 0;
+    p.poly.setAttribute('fill', on ? 'var(--teal)' : 'var(--steel)');
+    p.poly.setAttribute('stroke', on ? 'var(--teal)' : 'var(--steel-d)');
+    p.lab.setAttribute('fill', on ? 'var(--teal)' : 'var(--steel-d)');
+    p.pol.textContent = on ? (v * p.sign > 0 ? 'N' : 'S') : '';
+  }
+}
+function place() {
+  for (const r of rotors) r.g.setAttribute('transform', `rotate(${-(theta + r.off) + r.off} ${r.cx} ${r.cy}) rotate(${-r.off} ${r.cx} ${r.cy})`);
+  $('rAngle').textContent = fmt(theta) + '°';
+}
+// ---------- dynamics ----------
+function tick(ts) {
+  const dt = Math.min(0.03, (ts - last) / 1000 || 0.016); last = ts;
+  const k = 1400, c = 11;
+  for (let i = 0; i < 4; i++) { const a = k * torque(theta) - c * omega; omega += a * dt / 4; theta += omega * dt / 4; }
+  place();
+  if (Math.abs(omega) < 0.3 && Math.abs(torque(theta)) < 0.00005) { running = false; omega = 0; return; }
+  requestAnimationFrame(tick);
+}
+function settle() {
+  if (reduce) { for (let i = 0; i < 6000; i++) theta += torque(theta) * 0.04; place(); return; }
+  if (!running) { running = true; last = performance.now(); requestAnimationFrame(tick); }
+}
+// ---------- table & waves ----------
+const show = v => v === -1 ? '−1' : String(v);
+function drawTable() {
+  const t = $('tbl'); t.textContent = '';
+  const h = t.insertRow(); const n0 = document.createElement('td'); n0.className = 'n'; h.appendChild(n0);
+  ['A', 'B'].forEach(x => { const th = document.createElement('th'); th.textContent = x; h.appendChild(th); });
+  seq.forEach((r, i) => { const tr = t.insertRow(); tr.className = i === idx ? 'cur' : ''; const n = tr.insertCell(); n.className = 'n'; n.textContent = i + 1; r.forEach(v => tr.insertCell().textContent = show(v)); });
+  const fr = t.insertRow(); const n = fr.insertCell(); n.className = 'n'; n.textContent = '↺';
+  seq[0].forEach(v => { const c = fr.insertCell(); c.textContent = show(v); c.style.opacity = .45; });
+  const ref = kind === 'pm' ? { full: '(1-5)', half: '(1-6)' } : { full: '(1-5)', half: '(1-6)', two: ccw ? '(1-7)' : '(1-8)' };
+  const name = { full: 'خطوة كاملة', half: 'نصف خطوة', two: 'المجموعتان معاً' }[mode];
+  $('tblTitle').textContent = `جدول التسلسل — ${name} ${ccw ? 'ضد' : 'مع'} عقارب الساعة` + (noRev ? ' (دون عكس القطبية)' : (ccw || mode === 'two' ? ` — الجدول ${ref[mode]}` : ` — عكس الجدول ${ref[mode]}`));
+}
+function drawWave() {
+  const w = $('wave'); w.textContent = '';
+  const cols = seq.length * 2, left = 46, W = 600, slot = (W - left - 12) / cols, band = 70, H = band * 2 + 24;
+  w.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const cur = steps % cols;
+  el('rect', { x: left + cur * slot, y: 2, width: slot, height: band * 2, fill: 'var(--teal-soft)' }, w);
+  for (let i = 0; i <= cols; i++) el('line', { x1: left + i * slot, y1: 2, x2: left + i * slot, y2: band * 2 + 2, stroke: 'var(--line)', 'stroke-dasharray': '3 4' }, w);
+  for (let g = 0; g < 2; g++) {
+    const base = 2 + band * g + band / 2, amp = 22;
+    el('line', { x1: left, y1: base, x2: W - 8, y2: base, stroke: 'var(--muted)' }, w);
+    const lab = el('text', { x: left - 10, y: base + 5, 'text-anchor': 'end', 'font-size': 15, 'font-weight': 700, fill: 'var(--fg)', 'font-family': 'var(--f-mono)' }, w); lab.textContent = 'V' + 'AB'[g];
+    [['+V', -amp], ['−V', amp]].forEach(([s, dy]) => { const t = el('text', { x: left - 4, y: base + dy + 4, 'text-anchor': 'end', 'font-size': 10, fill: 'var(--muted)', 'font-family': 'var(--f-mono)' }, w); t.textContent = s; });
+    let d = '';
+    for (let i = 0; i < cols; i++) { const y = base - seq[i % seq.length][g] * amp, x0 = left + i * slot; d += (i ? ' L' : 'M') + x0 + ',' + y + ' L' + (x0 + slot) + ',' + y; }
+    el('path', { d, fill: 'none', stroke: 'var(--teal)', 'stroke-width': 2.4 }, w);
+  }
+  for (let i = 0; i < cols; i++) { const t = el('text', { x: left + (i + .5) * slot, y: H - 4, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--muted)', 'font-family': 'var(--f-mono)' }, w); t.textContent = i + 1; }
+}
+function stepSize() { return C.step / (mode === 'half' ? 2 : 1); }
+function explain(prevTheta) {
+  const st = seq[idx];
+  const part = g => st[g] === 0 ? '' : `${'AB'[g]}${st[g] < 0 ? ' بقطبية معكوسة' : ''}`;
+  const on = [part(0), part(1)].filter(Boolean);
+  let txt = on.length === 1 ? `تغذية المجموعة ${on[0]}.` : `تغذية المجموعتين ${on[0]} و ${on[1]} معاً.`;
+  if (prevTheta !== undefined) {
+    const target = equilibrium(prevTheta), d = target - prevTheta;
+    if (Math.abs(d) < 0.5) txt += ' لم يتحرك الدوار.';
+    else txt += ` يتحرك الدوار ${fmt(Math.abs(d))}° ${d > 0 ? 'ضد' : 'مع'} عقارب الساعة.`;
+    if (noRev && d < 0 && ccw) txt += ' عاد الدوار للخلف: دون عكس القطبية تجذب الأقطاب الدوار إلى وضع سابق بدلاً من دفعه إلى الأمام، ولذلك يلزم عكس القطبية في هذا النوع.';
+  }
+  if (kind === 'hybrid' && mode === 'two' && prevTheta === undefined) txt += ' تغذية المجموعتين معاً تعطي عزماً أكبر من تغذية مجموعة واحدة.';
+  $('explain').textContent = txt;
+}
+function equilibrium(t0) { let t = t0; for (let i = 0; i < 6000; i++) t += torque(t) * 0.04; return t; }
+function updateFormula() { $('formula').textContent = C.formula + (mode === 'half' ? '  →  ½ step = ' + fmt(C.step / 2) + '°' : ''); $('rStep').textContent = fmt(stepSize()) + '°'; }
+
+function advance() {
+  const prev = theta; idx = (idx + 1) % seq.length; steps++;
+  $('rCount').textContent = steps; paintPoles(); drawTable(); drawWave(); explain(prev); settle();
+}
+function stop() { if (playing) { clearInterval(playing); playing = null; $('play').textContent = 'تشغيل تلقائي'; } }
+function reset(redraw) {
+  stop(); seq = buildSeq(); idx = 0; steps = 0; omega = 0;
+  theta = equilibrium(0); if (Math.abs(theta) < 0.01) theta = 0;
+  $('rCount').textContent = 0;
+  if (redraw) drawMotor(); else { paintPoles(); place(); }
+  drawTable(); drawWave(); updateFormula(); explain();
+}
+const seg = (on, offs) => { $(on).setAttribute('aria-pressed', 'true'); offs.forEach(o => $(o).setAttribute('aria-pressed', 'false')); };
+$('mFull').onclick = () => { mode = 'full'; seg('mFull', ['mHalf', 'mTwo']); reset(); };
+$('mHalf').onclick = () => { mode = 'half'; seg('mHalf', ['mFull', 'mTwo']); reset(); };
+$('mTwo').onclick = () => { mode = 'two'; seg('mTwo', ['mFull', 'mHalf']); reset(); };
+$('dCcw').onclick = () => { ccw = true; seg('dCcw', ['dCw']); reset(); };
+$('dCw').onclick = () => { ccw = false; seg('dCw', ['dCcw']); reset(); };
+$('noRev').onchange = e => { noRev = e.target.checked; reset(); };
+$('next').onclick = () => { stop(); advance(); };
+$('play').onclick = () => { if (playing) return stop(); $('play').textContent = 'إيقاف'; playing = setInterval(advance, 1000 / +$('speed').value); };
+$('reset').onclick = () => reset();
+$('speed').oninput = () => { if (playing) { stop(); $('play').click(); } };
+
+function setKind() {
+  kind = location.hash === '#hybrid' ? 'hybrid' : 'pm'; C = CFG[kind];
+  $('h1').textContent = C.title; $('lead').textContent = C.lead; $('foot').textContent = C.foot;
+  $('tPm').setAttribute('aria-current', kind === 'pm' ? 'page' : 'false'); $('tHy').setAttribute('aria-current', kind === 'hybrid' ? 'page' : 'false');
+  $('mTwo').hidden = kind !== 'hybrid'; $('torqueBox').hidden = kind !== 'hybrid';
+  if (kind === 'pm' && mode === 'two') { mode = 'full'; seg('mFull', ['mHalf', 'mTwo']); }
+  reset(true);
+}
+addEventListener('hashchange', setKind);
+setKind();
+})();
+</script>
+
+</body>
+</html>

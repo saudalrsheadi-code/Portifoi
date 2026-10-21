@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>محاكي الآلات ذاتية التزامن</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+[hidden]{display:none!important}
+/* Layout: one column on phones — motor first, controls under it, then table + waveform; two columns from 900px */
+:root{
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#b5651d; --steel:#c9d3d7; --steel-d:#8d9ca2;
+  --ok:#2e7d4f; --bad:#b23b3b;
+  --f-body:"Cairo", "Segoe UI", Tahoma, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;direction:rtl;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 32px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:2px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
+.grid{display:grid;gap:16px}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:15px;color:var(--teal)}
+.motor svg{direction:ltr;width:100%;max-width:380px;margin:0 auto;display:block}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.readout div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.readout b{display:block;font-family:var(--f-mono);font-size:18px;color:var(--fg);direction:ltr}
+.readout span{font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:8px 16px;cursor:pointer;min-height:42px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+label{font-size:13px;color:var(--muted)}
+select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+input[type=range]{accent-color:var(--teal);width:140px}
+.formula{font-family:var(--f-mono);direction:ltr;text-align:center;background:var(--teal-soft);border-radius:8px;padding:8px;font-size:clamp(13px,3.6vw,16px);overflow-wrap:anywhere}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;direction:ltr;margin:0 auto;font-family:var(--f-mono);font-size:15px}
+th,td{border:1px solid var(--line);padding:3px 14px;text-align:center}
+th{color:var(--teal);background:var(--teal-soft)}
+td.n{color:var(--muted);font-size:12px;border:0;padding-inline:6px}
+tr.cur td:not(.n){background:var(--teal);color:#fff}
+.wave{overflow-x:auto;direction:ltr}
+.wave svg{display:block;width:100%}
+.note{font-size:13px;color:var(--muted);margin:0}
+.predict{border:1px dashed var(--teal);border-radius:10px;padding:10px;display:grid;gap:8px}
+.predict[hidden]{display:none!important}
+.opts{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
+.opts button{font-family:var(--f-mono);font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
+.fb{font-size:14px;margin:0;min-height:1.7em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-left:4px}
+footer{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:4px 14px}
+.tabs a[aria-current="page"]{background:var(--teal);color:#fff}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto}
+.warn{color:var(--bad)}
+</style>
+<style>
+.sl{display:grid;grid-template-columns:8em 1fr 5.5em;gap:8px;align-items:center;font-size:13px}
+.sl input{width:100%;accent-color:var(--teal)}
+.sl output{font-family:var(--f-mono);direction:ltr;text-align:left;font-size:13px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.kpi div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.kpi b{display:block;font-family:var(--f-mono);font-size:16px;direction:ltr}
+.kpi span{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:3px 12px;cursor:pointer}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto;white-space:pre}
+.inp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;direction:ltr}
+.inp label{display:grid;gap:2px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.inp input{font:inherit;font-family:var(--f-mono);font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:100%}
+svg.pic{width:100%;display:block;direction:ltr}
+</style>
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الخامسة</span>
+    <h1 id="h1">جهاز نقل المعلومات</h1>
+    <p class="lead" id="lead"></p>
+    <nav class="tabs" aria-label="الموضوع">
+      <a href="#data" id="tData">نقل المعلومات</a>
+      <a href="#torque" id="tTq">نقل العزم</a>
+    </nav>
+  </header>
+
+  <div class="grid" id="vData">
+    <section class="panel">
+      <h2>مرسل التحكم CX ومحول التحكم CT</h2>
+      <svg class="pic" id="dDraw" viewBox="0 0 600 300" role="img" aria-label="المرسل والمحول"></svg>
+      <div class="sl"><label for="tx">زاوية محور الدخل</label><input type="range" id="tx" min="-180" max="180" step="1" value="0"><output id="otx"></output></div>
+      <div class="row"><label><input type="checkbox" id="follow" checked> تشغيل محرك التحكم (متابعة تلقائية لمحور الخرج)</label></div>
+      <div class="chips"><button data-a="60">إدارة المرسل 60° (السؤال س5-11)</button><button data-a="90">90°</button><button data-a="0">الصفر</button></div>
+    </section>
+    <section class="panel">
+      <h2>الجهود</h2>
+      <div class="kpi">
+        <div><b id="kS1">0</b><span>S1 (نسبي)</span></div><div><b id="kS2">0</b><span>S2</span></div><div><b id="kS3">0</b><span>S3</span></div>
+        <div><b id="kA">0°</b><span>زاوية الخطأ α</span></div><div><b id="kE">0</b><span>e على ملف دوار CT (V)</span></div>
+      </div>
+      <div class="sl"><label for="emax">أقصى جهد E</label><input type="range" id="emax" min="10" max="200" step="5" value="100"><output id="oem"></output></div>
+      <div class="calc" id="dCalc"></div>
+      <p class="note" id="dExplain" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div class="grid" id="vTq" hidden>
+    <section class="panel">
+      <h2>تدفق القدرة</h2>
+      <svg class="pic" id="tDraw" viewBox="0 0 600 300" role="img" aria-label="تدفق القدرة بين الجهازين"></svg>
+      <p class="note">الجهاز (I) يُدار بالعزم Td ويعمل مولداً لدائرة الدوار، والجهاز (II) يعمل محركاً؛ والعضوان الثابتان على المصدر نفسه، والدواران موصلان عبر حلقات الانزلاق.</p>
+    </section>
+    <section class="panel">
+      <h2>حاسبة المثال (5-1)</h2>
+      <div class="inp">
+        <label>T (kgf·m)<input id="T" value="70.75"></label><label>n (rpm)<input id="n" value="825"></label>
+        <label>f (Hz)<input id="f" value="50"></label><label>عدد الأقطاب<input id="p" value="4"></label>
+      </div>
+      <div class="chips"><button id="ex51">مثال (5-1)</button><button id="ex512">السؤال (س5-12)</button></div>
+      <div class="calc" id="tCalc"></div>
+    </section>
+  </div>
+  <footer id="foot"></footer>
+</div>
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg', $ = id => document.getElementById(id);
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const txt = (p, x, y, s, a = {}) => { const t = el('text', Object.assign({ x, y, 'font-size': 13, fill: 'var(--muted)', 'font-family': 'var(--f-mono)', 'text-anchor': 'middle' }, a), p); t.textContent = s; return t; };
+const f = (v, d = 1) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const R = d => d * Math.PI / 180, wrap = a => ((a % 360) + 540) % 360 - 180;
+
+// ---------- data transmission ----------
+let ct = 0;   // CT rotor angle measured from its zero position (perpendicular to S1)
+function machine(s, cx, cy, label, ang, perp, col) {
+  el('circle', { cx, cy, r: 80, fill: 'var(--bg)', stroke: 'var(--steel-d)', 'stroke-width': 2 }, s);
+  [0, 120, 240].forEach((a, k) => {
+    const x = cx + 92 * Math.sin(R(a)), y = cy - 92 * Math.cos(R(a));
+    el('line', { x1: cx + 80 * Math.sin(R(a)), y1: cy - 80 * Math.cos(R(a)), x2: x, y2: y, stroke: 'var(--steel-d)', 'stroke-width': 2 }, s);
+    txt(s, cx + 108 * Math.sin(R(a)), cy - 108 * Math.cos(R(a)) + 5, 'S' + (k + 1), { fill: 'var(--fg)', 'font-weight': 700 });
+  });
+  const a = ang + (perp ? 90 : 0);
+  const x = 58 * Math.sin(R(a)), y = -58 * Math.cos(R(a));
+  el('line', { x1: cx - x, y1: cy - y, x2: cx + x, y2: cy + y, stroke: col, 'stroke-width': 9, 'stroke-linecap': 'round' }, s);
+  el('circle', { cx: cx + x, cy: cy + y, r: 7, fill: 'var(--mark)' }, s);
+  el('circle', { cx, cy, r: 5, fill: 'var(--fg)' }, s);
+  txt(s, cx, cy + 128, label, { fill: 'var(--fg)', 'font-weight': 700 });
+}
+function drawData() {
+  const tx = +$('tx').value, E = +$('emax').value; $('otx').textContent = tx + '°'; $('oem').textContent = E + ' V';
+  const s = $('dDraw'); s.textContent = '';
+  machine(s, 150, 140, 'CX (input shaft)', tx, false, 'var(--teal)');
+  machine(s, 450, 140, 'CT (output shaft)', ct, true, 'var(--blue)');
+  el('path', { d: 'M242,140 C300,100 300,180 358,140', fill: 'none', stroke: 'var(--line)', 'stroke-width': 3 }, s);
+  txt(s, 300, 112, '3 wires', { 'font-size': 11 });
+  const S = [0, 120, 240].map(a => Math.cos(R(tx - a)));
+  ['kS1', 'kS2', 'kS3'].forEach((id, k) => $(id).textContent = f(S[k], 2));
+  const a = wrap(tx - ct), e = E * Math.sin(R(a));
+  $('kA').textContent = f(a, 1) + '°'; $('kE').textContent = f(e, 1);
+  $('dCalc').textContent = `Stator: S1 ∝ cos(${tx}°), S2 ∝ cos(${tx}° − 120°),\n        S3 ∝ cos(${tx}° − 240°)\ne = E · sin α = ${E} × sin(${f(a, 1)}°) = ${f(e, 1)} V`;
+  $('dExplain').textContent = Math.abs(a) < 0.5
+    ? 'وضع الاتزان: ملف دوار المحول متعامد مع مجال ثابته، فلا يتولد جهد على أطرافه، ويبقى محرك التحكم ساكناً.'
+    : `يدور محور الدخل بزاوية فرقها عن محور الخرج ${f(a, 1)}°: يتولد على ملف دوار المحول جهد e = E sin α يكبّره مكبر القدرة ويغذي ملف التحكم، فيدور محرك التحكم ومحور الخرج${$('follow').checked ? ' حتى يعود الدوار إلى وضع الاتزان' : ''}.`;
+}
+$('tx').oninput = drawData; $('emax').oninput = drawData; $('follow').onchange = drawData;
+document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { if (b.dataset.a === '60') { $('follow').checked = false; ct = 0; } $('tx').value = b.dataset.a; drawData(); });
+
+// ---------- torque transmission ----------
+function tq() {
+  const v = id => parseFloat($(id).value), [Tk, n, fr, p] = ['T', 'n', 'f', 'p'].map(v);
+  if ([Tk, n, fr, p].some(isNaN) || p <= 0) { $('tCalc').textContent = 'أدخل أرقاماً صحيحة.'; return; }
+  const T = Tk * 9.81, ns = 120 * fr / p, s = (ns - n) / ns, wr = 2 * Math.PI * n / 60, ws = 2 * Math.PI * ns / 60;
+  const Pml = T * wr / 1000, Par = s * T * ws / 1000, Psi = T * ws / 1000, Pmo = (1 - s) / s * Par, Pso = Pmo / (1 - s);
+  $('tCalc').textContent =
+    `T = ${Tk} kgf·m × 9.81 = ${f(T, 1)} N·m\nns = 120 f / P = ${f(ns, 0)} rpm   (P = number of poles)\ns = (ns − n) / ns = ${f(s, 3)}\nωr = ${f(wr, 1)} rad/s ;  ωs = ${f(ws, 1)} rad/s\n` +
+    `Unit I:  Pml = T·ωr = ${f(Pml, 1)} kW\n         Par = s·T·ωs = ${f(Par, 1)} kW\n         PSI = T·ωs = ${f(Psi, 1)} kW\n` +
+    `Unit II: Pmo = (1−s)/s · Par = ${f(Pmo, 1)} kW\n         PSO = Pmo/(1−s) = ${f(Pso, 1)} kW\nCheck: PSI = Pml + Par = ${f(Pml + Par, 1)} kW`;
+  const d = $('tDraw'); d.textContent = '';
+  const box = (x, lab) => { el('rect', { x, y: 110, width: 150, height: 90, rx: 8, fill: 'var(--teal-soft)', stroke: 'var(--teal)' }, d); txt(d, x + 75, 160, lab, { fill: 'var(--fg)', 'font-size': 18, 'font-weight': 700 }); };
+  box(80, 'I'); box(370, 'II');
+  el('line', { x1: 40, y1: 40, x2: 560, y2: 40, stroke: 'var(--steel-d)', 'stroke-width': 3 }, d); txt(d, 300, 30, 'AC supply (stators)');
+  const arr = (x1, y1, x2, y2, lab, lx, ly) => { el('line', { x1, y1, x2, y2, stroke: 'var(--mark)', 'stroke-width': 3, 'marker-end': 'url(#a2)' }, d); txt(d, lx, ly, lab, { fill: 'var(--mark)', 'font-weight': 700 }); };
+  const df = el('defs', {}, d), m = el('marker', { id: 'a2', markerWidth: 8, markerHeight: 8, refX: 7, refY: 4, orient: 'auto' }, df); el('path', { d: 'M0,0 L8,4 L0,8 Z', fill: 'var(--mark)' }, m);
+  arr(155, 105, 155, 48, `PSI = ${f(Psi, 0)} kW`, 155, 80);
+  arr(445, 48, 445, 105, `PSO = ${f(Pso, 0)} kW`, 445, 80);
+  arr(20, 155, 78, 155, `Pml = ${f(Pml, 0)}`, 40, 225);
+  arr(370, 230, 230, 230, `Par = ${f(Par, 0)} kW`, 300, 255);
+  arr(522, 155, 585, 155, `Pmo = ${f(Pmo, 0)}`, 560, 225);
+  el('line', { x1: 230, y1: 195, x2: 370, y2: 195, stroke: 'var(--steel-d)', 'stroke-dasharray': '5 4' }, d); txt(d, 300, 188, 'rotor circuit (slip rings)', { 'font-size': 11 });
+}
+['T', 'n', 'f', 'p'].forEach(id => $(id).addEventListener('input', tq));
+$('ex51').onclick = () => { $('T').value = 70.75; $('n').value = 825; $('f').value = 50; $('p').value = 4; tq(); };
+$('ex512').onclick = () => { $('T').value = 100; $('n').value = 1000; $('f').value = 50; $('p').value = 4; tq(); };
+
+const CFG = {
+  data: { h: 'جهاز نقل المعلومات', lead: 'أدِر محور الدخل (المرسل) وراقب جهود ملفات الثابت، والجهد المتولد على ملف دوار المحول، ومتابعة محرك التحكم لمحور الخرج.', foot: 'المرجع: الحقيبة — القسمان (5-2) و(5-3-1)، الأشكال (5-1) إلى (5-5). الأهداف 5-1 إلى 5-6.' },
+  torque: { h: 'جهاز نقل العزم', lead: 'أدخل العزم والسرعة والتردد وعدد الأقطاب لتحسب تدفق القدرة بين الجهازين كما في المثال (5-1).', foot: 'المرجع: الحقيبة — القسم (5-3-2)، الشكل (5-6)، والمثال (5-1). الأهداف 5-7 و5-8.' } };
+let kind = 'data';
+function setKind() {
+  kind = location.hash === '#torque' ? 'torque' : 'data';
+  $('h1').textContent = CFG[kind].h; $('lead').textContent = CFG[kind].lead; $('foot').textContent = CFG[kind].foot;
+  $('vData').hidden = kind !== 'data'; $('vTq').hidden = kind !== 'torque';
+  $('tData').setAttribute('aria-current', kind === 'data' ? 'page' : 'false'); $('tTq').setAttribute('aria-current', kind === 'torque' ? 'page' : 'false');
+}
+let lt = performance.now();
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - lt) / 1000); lt = ts;
+  if (kind === 'data' && $('follow').checked) {
+    const a = wrap(+$('tx').value - ct);
+    if (Math.abs(a) > 0.05) { ct += reduce ? a : Math.sign(a) * Math.min(Math.abs(a), Math.max(8, Math.abs(a) * 2.5) * dt); drawData(); }
+  }
+  requestAnimationFrame(loop);
+}
+addEventListener('hashchange', setKind);
+drawData(); tq(); setKind(); requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>

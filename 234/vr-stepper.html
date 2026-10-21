@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>محاكي محرك الخطوة</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column on phones — motor first, controls under it, then table + waveform; two columns from 900px */
+:root{
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#b5651d; --steel:#c9d3d7; --steel-d:#8d9ca2;
+  --ok:#2e7d4f; --bad:#b23b3b;
+  --f-body:"Cairo", "Segoe UI", Tahoma, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;direction:rtl;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 32px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:2px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
+.grid{display:grid;gap:16px}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:15px;color:var(--teal)}
+.motor svg{direction:ltr;width:100%;max-width:380px;margin:0 auto;display:block}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.readout div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.readout b{display:block;font-family:var(--f-mono);font-size:18px;color:var(--fg);direction:ltr}
+.readout span{font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:8px 16px;cursor:pointer;min-height:42px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+label{font-size:13px;color:var(--muted)}
+select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+input[type=range]{accent-color:var(--teal);width:140px}
+.formula{font-family:var(--f-mono);direction:ltr;text-align:center;background:var(--teal-soft);border-radius:8px;padding:8px;font-size:clamp(13px,3.6vw,16px);overflow-wrap:anywhere}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;direction:ltr;margin:0 auto;font-family:var(--f-mono);font-size:15px}
+th,td{border:1px solid var(--line);padding:3px 14px;text-align:center}
+th{color:var(--teal);background:var(--teal-soft)}
+td.n{color:var(--muted);font-size:12px;border:0;padding-inline:6px}
+tr.cur td:not(.n){background:var(--teal);color:#fff}
+.wave{overflow-x:auto;direction:ltr}
+.wave svg{display:block;width:100%}
+.note{font-size:13px;color:var(--muted);margin:0}
+.predict{border:1px dashed var(--teal);border-radius:10px;padding:10px;display:grid;gap:8px}
+.predict[hidden]{display:none!important}
+.opts{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
+.opts button{font-family:var(--f-mono);font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
+.fb{font-size:14px;margin:0;min-height:1.7em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-left:4px}
+footer{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الأولى</span>
+    <h1>محاكي محرك الخطوة ذي الممانعة المتغيرة</h1>
+    <p class="lead">غيّر طريقة التغذية والاتجاه، ثم تقدّم خطوة بخطوة. لاحظ أن موضع الدوار، والصف المضاء في جدول التسلسل، وعمود الموجة يتغيّر معاً.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel motor" aria-label="المحرك">
+      <h2>المحرك</h2>
+      <svg id="motor" viewBox="0 0 320 320" role="img" aria-label="رسم المحرك وموضع الدوار"></svg>
+      <div class="legend">
+        <span><i style="background:var(--teal)"></i>قطب مغذّى</span>
+        <span><i style="background:var(--steel)"></i>قطب مفصول</span>
+        <span><i style="background:var(--mark);border-radius:50%"></i>سن العلامة لتتبع الحركة</span>
+      </div>
+      <div class="readout">
+        <div><b id="rStep">30°</b><span>زاوية الخطوة</span></div>
+        <div><b id="rAngle">0°</b><span>موضع الدوار</span></div>
+        <div><b id="rCount">0</b><span>عدد الخطوات</span></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="التحكم">
+      <h2>التحكم</h2>
+      <div class="row">
+        <label for="preset">المحرك</label>
+        <select id="preset">
+          <option value="3,4">الشكل (1-7): ثلاث مجموعات، دوار بأربعة أسنان</option>
+          <option value="3,8">ثلاث مجموعات، دوار بثمانية أسنان</option>
+          <option value="4,10">أربع مجموعات، دوار بعشرة أسنان</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="seg" role="group" aria-label="طريقة التغذية">
+          <button id="mFull" aria-pressed="true">خطوة كاملة</button>
+          <button id="mHalf" aria-pressed="false">نصف خطوة</button>
+        </div>
+        <div class="seg" role="group" aria-label="الاتجاه">
+          <button id="dCcw" aria-pressed="true">ضد عقارب الساعة</button>
+          <button id="dCw" aria-pressed="false">مع عقارب الساعة</button>
+        </div>
+      </div>
+      <div class="formula" id="formula">θ = 360 / (N · P) = 360 / (3 × 4) = 30°</div>
+      <p class="note" id="halfNote" hidden></p>
+      <div class="row">
+        <button class="btn" id="next">الخطوة التالية</button>
+        <button class="btn ghost" id="play">تشغيل تلقائي</button>
+        <button class="btn ghost" id="reset">إعادة</button>
+      </div>
+      <div class="row">
+        <label for="speed">سرعة التشغيل التلقائي</label>
+        <input type="range" id="speed" min="1" max="6" value="2" aria-label="خطوات في الثانية">
+        <label><input type="checkbox" id="predictOn"> توقّع الخطوة التالية قبل تنفيذها</label>
+      </div>
+      <div class="predict" id="predict" hidden>
+        <p class="note" id="pq">اختر حالة التغذية التالية (A, B, C):</p>
+        <div class="opts" id="opts"></div>
+        <p class="fb" id="fb" aria-live="polite"></p>
+      </div>
+      <p class="note" id="explain" aria-live="polite">المجموعة A مغذّاة: تتجه أسنان الدوار وتثبت على محاور أقطابها.</p>
+    </section>
+
+    <section class="panel" aria-label="جدول التسلسل">
+      <h2 id="tblTitle">جدول التسلسل المنطقي</h2>
+      <div class="tbl"><table id="tbl"></table></div>
+      <p class="note">1 = المجموعة مغذّاة، 0 = مفصولة. كل صف خطوة واحدة، وعكس ترتيب الصفوف يعكس اتجاه الدوران.</p>
+    </section>
+
+    <section class="panel" aria-label="موجات الجهد">
+      <h2>موجات الجهد على المجموعات</h2>
+      <div class="wave"><svg id="wave" role="img" aria-label="موجات الجهد"></svg></div>
+      <p class="note">رُسمت الموجات لدورتين من الجدول، والعمود المظلل هو الخطوة الحالية.</p>
+    </section>
+  </div>
+  <footer>المرجع: الحقيبة التدريبية — القسم (1-2)، الجداول (1-1) إلى (1-4)، والأشكال (1-3) إلى (1-7). الأهداف 1-3، 1-4، 1-5، 1-6، 1-11.</footer>
+</div>
+
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const L = 'ABCDE';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let N = 3, P = 4, half = false, ccw = true, sgn = 1;
+let seq = [], idx = 0, steps = 0;
+let theta = 0, omega = 0, playing = null;
+
+const wrap = a => ((a % 360) + 540) % 360 - 180;
+const poleAngle = g => sgn * -g * 180 / N;            // group g, first pole (N); opposite pole +180 (S)
+const fmt = v => (Math.round(v * 10) / 10).toString().replace(/\.0$/, '');
+
+function chooseSign() {
+  // place the groups so that A -> B gives a CCW (positive) step, as in the unit
+  for (const s of [1, -1]) {
+    const b = s * -180 / N, pitch = 360 / P;
+    let best = 1e9;
+    for (let k = -P; k <= P; k++) { const d = wrap(b - k * pitch); if (Math.abs(d) < Math.abs(best)) best = d; }
+    if (best > 0) return s;
+  }
+  return 1;
+}
+
+function buildSeq() {
+  const s = [];
+  for (let g = 0; g < N; g++) {
+    const one = Array(N).fill(0); one[g] = 1; s.push(one);
+    if (half) { const two = Array(N).fill(0); two[g] = 1; two[(g + 1) % N] = 1; s.push(two); }
+  }
+  if (!ccw) { const first = s[0]; const rest = s.slice(1).reverse(); return [first, ...rest]; }
+  return s;
+}
+
+// ---------- motor drawing ----------
+const svg = $('motor'); let rotorG, poleEls = [];
+function drawMotor() {
+  svg.textContent = '';
+  const cx = 160, cy = 160;
+  const pt = (r, a) => [cx - r * Math.sin(a * Math.PI / 180), cy - r * Math.cos(a * Math.PI / 180)];
+  el('circle', { cx, cy, r: 146, fill: 'var(--bg)', stroke: 'var(--steel-d)', 'stroke-width': 2 }, svg);
+  el('circle', { cx, cy, r: 120, fill: 'var(--surface)', stroke: 'var(--steel-d)', 'stroke-width': 1.2 }, svg);
+  poleEls = [];
+  const hw = Math.min(14, 180 / N / 2.6);
+  for (let g = 0; g < N; g++) for (let j = 0; j < 2; j++) {
+    const a = poleAngle(g) + j * 180;
+    const p = [pt(121, a - hw), pt(121, a + hw), pt(90, a + hw - 1), pt(90, a - hw + 1)];
+    const poly = el('polygon', { points: p.map(q => q.join(',')).join(' '), fill: 'var(--steel)', stroke: 'var(--steel-d)', 'stroke-width': 1.2 }, svg);
+    const [lx, ly] = pt(134, a);
+    const lab = el('text', { x: lx, y: ly + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 700, fill: 'var(--steel-d)', 'font-family': 'var(--f-mono)' }, svg);
+    lab.textContent = L[g] + (j ? '′' : '');
+    const [px, py] = pt(104, a);
+    const pol = el('text', { x: px, y: py + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#fff', 'font-family': 'var(--f-mono)' }, svg);
+    poleEls.push({ g, j, poly, lab, pol });
+  }
+  // reference axis (start position)
+  const [ax, ay] = pt(116, 0);
+  el('line', { x1: cx, y1: cy, x2: ax, y2: ay, stroke: 'var(--mark)', 'stroke-width': 1, 'stroke-dasharray': '4 4', opacity: .7 }, svg);
+  rotorG = el('g', {}, svg);
+  const tw = Math.min(20, 360 / P * 0.28);
+  for (let k = 0; k < P; k++) {
+    const a = k * 360 / P;
+    const p = [pt(34, a - tw - 8), pt(34, a + tw + 8), pt(87, a + tw), pt(87, a - tw)];
+    el('polygon', { points: p.map(q => q.join(',')).join(' '), fill: 'var(--steel)', stroke: 'var(--fg)', 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, rotorG);
+  }
+  el('circle', { cx, cy, r: 36, fill: 'var(--steel)', stroke: 'var(--fg)', 'stroke-width': 1.2 }, rotorG);
+  const [mx, my] = pt(76, 0);
+  el('circle', { cx: mx, cy: my, r: 6, fill: 'var(--mark)' }, rotorG);
+  el('circle', { cx, cy, r: 5, fill: 'var(--fg)' }, rotorG);
+  paintPoles(); placeRotor();
+}
+function paintPoles() {
+  const st = seq[idx];
+  for (const p of poleEls) {
+    const on = st[p.g] === 1;
+    p.poly.setAttribute('fill', on ? 'var(--teal)' : 'var(--steel)');
+    p.poly.setAttribute('stroke', on ? 'var(--teal)' : 'var(--steel-d)');
+    p.lab.setAttribute('fill', on ? 'var(--teal)' : 'var(--steel-d)');
+    p.pol.textContent = on ? (p.j ? 'S' : 'N') : '';
+  }
+}
+function placeRotor() {
+  rotorG.setAttribute('transform', `rotate(${-theta} 160 160)`);
+  $('rAngle').textContent = fmt(theta) + '°';
+}
+
+// ---------- dynamics: rotor teeth seek the energized poles ----------
+function torque(t) {
+  const st = seq[idx]; let tq = 0;
+  for (let g = 0; g < N; g++) if (st[g]) tq -= Math.sin(P * (t - poleAngle(g)) * Math.PI / 180);
+  return tq;
+}
+let last = 0, running = false;
+function tick(ts) {
+  const dt = Math.min(0.03, (ts - last) / 1000 || 0.016); last = ts;
+  const k = 900 / P, c = 9;
+  for (let i = 0; i < 4; i++) {
+    const a = k * torque(theta) * 57.3 / P - c * omega;
+    omega += a * dt / 4; theta += omega * dt / 4;
+  }
+  placeRotor();
+  if (Math.abs(omega) < 0.3 && Math.abs(torque(theta)) < 0.0003) { running = false; omega = 0; return; }
+  requestAnimationFrame(tick);
+}
+function settle() {
+  if (reduce) { // jump straight to the equilibrium
+    for (let i = 0; i < 4000; i++) theta += torque(theta) * 0.05;
+    placeRotor(); return;
+  }
+  if (!running) { running = true; last = performance.now(); requestAnimationFrame(tick); }
+}
+
+// ---------- table & waves ----------
+function drawTable() {
+  const t = $('tbl'); t.textContent = '';
+  const h = t.insertRow(); const n0 = document.createElement('td'); n0.className = 'n'; h.appendChild(n0);
+  for (let g = 0; g < N; g++) { const th = document.createElement('th'); th.textContent = L[g]; h.appendChild(th); }
+  seq.forEach((r, i) => {
+    const tr = t.insertRow(); tr.className = i === idx ? 'cur' : '';
+    const n = tr.insertCell(); n.className = 'n'; n.textContent = i + 1;
+    r.forEach(v => tr.insertCell().textContent = v);
+  });
+  const fr = t.insertRow(); const n = fr.insertCell(); n.className = 'n'; n.textContent = '↺';
+  seq[0].forEach(v => { const c = fr.insertCell(); c.textContent = v; c.style.opacity = .45; });
+  $('tblTitle').textContent = `جدول التسلسل — ${half ? 'نصف خطوة' : 'خطوة كاملة'} ${ccw ? 'ضد' : 'مع'} عقارب الساعة`;
+}
+function drawWave() {
+  const w = $('wave'); w.textContent = '';
+  const cols = seq.length * 2, left = 46, W = 600, slot = (W - left - 12) / cols, band = 48, H = band * N + 26;
+  w.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const cur = steps % (2 * seq.length);
+  el('rect', { x: left + cur * slot, y: 4, width: slot, height: band * N, fill: 'var(--teal-soft)' }, w);
+  for (let i = 0; i <= cols; i++) el('line', { x1: left + i * slot, y1: 4, x2: left + i * slot, y2: band * N + 4, stroke: 'var(--line)', 'stroke-dasharray': '3 4' }, w);
+  for (let g = 0; g < N; g++) {
+    const base = 4 + band * (g + 1) - 10, amp = 26;
+    el('line', { x1: left, y1: base, x2: W - 8, y2: base, stroke: 'var(--muted)', 'stroke-width': 1 }, w);
+    const lab = el('text', { x: left - 10, y: base - 8, 'text-anchor': 'end', 'font-size': 15, 'font-weight': 700, fill: 'var(--fg)', 'font-family': 'var(--f-mono)' }, w);
+    lab.textContent = 'V' + L[g];
+    let d = '';
+    for (let i = 0; i < cols; i++) {
+      const v = seq[i % seq.length][g], y = base - v * amp, x0 = left + i * slot, x1 = x0 + slot;
+      d += (i ? ' L' : 'M') + x0 + ',' + y + ' L' + x1 + ',' + y;
+    }
+    el('path', { d, fill: 'none', stroke: 'var(--teal)', 'stroke-width': 2.4 }, w);
+  }
+  for (let i = 0; i < cols; i++) {
+    const t = el('text', { x: left + (i + .5) * slot, y: H - 6, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--muted)', 'font-family': 'var(--f-mono)' }, w);
+    t.textContent = i + 1;
+  }
+}
+const stName = st => st.map((v, g) => v ? L[g] : '').join('') || '—';
+function explain(prev) {
+  const st = seq[idx], on = stName(st);
+  const step = 360 / (N * P) / (half ? 2 : 1);
+  let txt = on.length === 1
+    ? `المجموعة ${on} مغذّاة: تنجذب أقرب أسنان الدوار إلى قطبيها وتثبت على محوريهما.`
+    : `المجموعتان ${on[0]} و ${on[1]} مغذّاتان معاً: يستقر الدوار في منتصف المسافة بين وضعيهما (نصف خطوة).`;
+  if (prev !== undefined) txt += ` تحرك الدوار ${fmt(step)}° ${ccw ? 'ضد' : 'مع'} عقارب الساعة.`;
+  $('explain').textContent = txt;
+}
+function updateFormula() {
+  const st = 360 / (N * P);
+  $('formula').textContent = `θ = 360 / (N · P) = 360 / (${N} × ${P}) = ${fmt(st)}°`;
+  $('halfNote').hidden = !half;
+  $('halfNote').textContent = `في التشغيل بنصف خطوة يتحرك الدوار نصف هذه الزاوية: ${fmt(st / 2)}° في كل صف من الجدول.`;
+  $('rStep').textContent = fmt(half ? st / 2 : st) + '°';
+}
+
+// ---------- actions ----------
+function advance() {
+  const prev = idx; idx = (idx + 1) % seq.length; steps++;
+  $('rCount').textContent = steps;
+  paintPoles(); drawTable(); drawWave(); explain(prev); settle();
+}
+function reset(keepMotor) {
+  stop(); sgn = chooseSign(); seq = buildSeq(); idx = 0; steps = 0; theta = 0; omega = 0;
+  $('rCount').textContent = 0;
+  if (!keepMotor) drawMotor(); else { paintPoles(); placeRotor(); }
+  drawTable(); drawWave(); updateFormula(); explain(); hidePredict();
+}
+function stop() { if (playing) { clearInterval(playing); playing = null; $('play').textContent = 'تشغيل تلقائي'; } }
+function play() {
+  if (playing) return stop();
+  $('predictOn').checked = false; hidePredict();
+  $('play').textContent = 'إيقاف';
+  playing = setInterval(advance, 1000 / +$('speed').value);
+}
+
+// predict mode
+function hidePredict() { $('predict').hidden = true; $('fb').textContent = ''; }
+function showPredict() {
+  const nextIdx = (idx + 1) % seq.length, ans = seq[nextIdx].join(',');
+  const pool = []; const seen = new Set();
+  for (const r of buildAll()) { const k = r.join(','); if (!seen.has(k)) { seen.add(k); pool.push(r); } }
+  const box = $('opts'); box.textContent = ''; $('fb').textContent = ''; $('fb').className = 'fb';
+  $('pq').textContent = `الحالة الحالية (${L.slice(0, N).split('').join(', ')}) = (${seq[idx].join(', ')}). ما الحالة التالية ليدور المحرك ${ccw ? 'ضد' : 'مع'} عقارب الساعة ${half ? 'بنصف خطوة' : 'بخطوة كاملة'}؟`;
+  pool.forEach(r => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '(' + r.join(', ') + ')';
+    b.onclick = () => {
+      if (r.join(',') === ans) { $('fb').className = 'fb ok'; $('fb').textContent = 'إجابة صحيحة.'; setTimeout(() => { hidePredict(); advance(); }, 450); }
+      else {
+        $('fb').className = 'fb bad';
+        $('fb').textContent = half && r.filter(Boolean).length === 1 && seq[idx].filter(Boolean).length === 1
+          ? 'في نصف الخطوة تُغذّى مجموعتان متجاورتان معاً بين كل خطوتين كاملتين.'
+          : `ليست هذه. تذكّر: ${ccw ? 'ضد عقارب الساعة يكون الترتيب A ثم B ثم C' : 'مع عقارب الساعة يُعكس الترتيب: A ثم C ثم B'}.`;
+      }
+    };
+    box.appendChild(b);
+  });
+  $('predict').hidden = false;
+}
+function buildAll() { // all single and adjacent-pair states, so options do not give the answer away
+  const s = [];
+  for (let g = 0; g < N; g++) { const a = Array(N).fill(0); a[g] = 1; s.push(a); }
+  for (let g = 0; g < N; g++) { const a = Array(N).fill(0); a[g] = 1; a[(g + 1) % N] = 1; s.push(a); }
+  return s;
+}
+
+const seg = (a, b, val) => { $(a).setAttribute('aria-pressed', val); $(b).setAttribute('aria-pressed', !val); };
+$('mFull').onclick = () => { half = false; seg('mFull', 'mHalf', true); reset(true); };
+$('mHalf').onclick = () => { half = true; seg('mFull', 'mHalf', false); reset(true); };
+$('dCcw').onclick = () => { ccw = true; seg('dCcw', 'dCw', true); reset(true); };
+$('dCw').onclick = () => { ccw = false; seg('dCcw', 'dCw', false); reset(true); };
+$('preset').onchange = e => { [N, P] = e.target.value.split(',').map(Number); reset(false); };
+$('next').onclick = () => { stop(); if ($('predictOn').checked) showPredict(); else advance(); };
+$('play').onclick = play;
+$('reset').onclick = () => reset(true);
+$('speed').oninput = () => { if (playing) { stop(); play(); } };
+$('predictOn').onchange = e => { if (e.target.checked) { stop(); } else hidePredict(); };
+
+reset(false);
+})();
+</script>
+
+</body>
+</html>

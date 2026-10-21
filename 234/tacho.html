@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>محاكي مولدات التاكو</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+[hidden]{display:none!important}
+/* Layout: one column on phones — motor first, controls under it, then table + waveform; two columns from 900px */
+:root{
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#b5651d; --steel:#c9d3d7; --steel-d:#8d9ca2;
+  --ok:#2e7d4f; --bad:#b23b3b;
+  --f-body:"Cairo", "Segoe UI", Tahoma, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;direction:rtl;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 32px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:2px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
+.grid{display:grid;gap:16px}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:15px;color:var(--teal)}
+.motor svg{direction:ltr;width:100%;max-width:380px;margin:0 auto;display:block}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.readout div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.readout b{display:block;font-family:var(--f-mono);font-size:18px;color:var(--fg);direction:ltr}
+.readout span{font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:8px 16px;cursor:pointer;min-height:42px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+label{font-size:13px;color:var(--muted)}
+select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+input[type=range]{accent-color:var(--teal);width:140px}
+.formula{font-family:var(--f-mono);direction:ltr;text-align:center;background:var(--teal-soft);border-radius:8px;padding:8px;font-size:clamp(13px,3.6vw,16px);overflow-wrap:anywhere}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;direction:ltr;margin:0 auto;font-family:var(--f-mono);font-size:15px}
+th,td{border:1px solid var(--line);padding:3px 14px;text-align:center}
+th{color:var(--teal);background:var(--teal-soft)}
+td.n{color:var(--muted);font-size:12px;border:0;padding-inline:6px}
+tr.cur td:not(.n){background:var(--teal);color:#fff}
+.wave{overflow-x:auto;direction:ltr}
+.wave svg{display:block;width:100%}
+.note{font-size:13px;color:var(--muted);margin:0}
+.predict{border:1px dashed var(--teal);border-radius:10px;padding:10px;display:grid;gap:8px}
+.predict[hidden]{display:none!important}
+.opts{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
+.opts button{font-family:var(--f-mono);font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
+.fb{font-size:14px;margin:0;min-height:1.7em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-left:4px}
+footer{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:4px 14px}
+.tabs a[aria-current="page"]{background:var(--teal);color:#fff}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto}
+.warn{color:var(--bad)}
+</style>
+<style>
+.sl{display:grid;grid-template-columns:7.5em 1fr 5.5em;gap:8px;align-items:center;font-size:13px}
+.sl input{width:100%;accent-color:var(--teal)}
+.sl output{font-family:var(--f-mono);direction:ltr;text-align:left;font-size:13px}
+.plot svg,.scope svg{display:block;width:100%;direction:ltr}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+.kpi div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.kpi b{display:block;font-family:var(--f-mono);font-size:16px;direction:ltr}
+.kpi span{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:3px 12px;cursor:pointer}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto;white-space:pre}
+.inp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;direction:ltr}
+.inp label{display:grid;gap:2px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.inp input{font:inherit;font-family:var(--f-mono);font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:100%}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+</style>
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الثانية</span>
+    <h1 id="h1">مولد التاكو للتيار المستمر</h1>
+    <p class="lead" id="lead"></p>
+    <nav class="tabs" aria-label="نوع المولد">
+      <a href="#dc" id="tDc">التيار المستمر</a>
+      <a href="#ind" id="tInd">الحثي</a>
+      <a href="#sync" id="tSync">التزامني</a>
+    </nav>
+  </header>
+
+  <!-- ================= DC ================= -->
+  <div class="grid" id="vDc">
+    <section class="panel">
+      <h2>الخواص: الجهد على الأطراف مع السرعة</h2>
+      <div class="plot"><svg id="dcPlot" viewBox="0 0 600 380" role="img" aria-label="منحنى الجهد مع السرعة"></svg></div>
+      <div class="legend"><span><i style="background:var(--muted)"></i>المنحنى المثالي (RL = ∞)</span><span><i style="background:var(--teal)"></i>المنحنى الفعلي بالقيم المختارة</span><span><i style="background:var(--mark);border-radius:50%"></i>نقطة التشغيل</span></div>
+      <div class="kpi">
+        <div><b id="kEa">0</b><span>Ea (V)</span></div>
+        <div><b id="kVa">0</b><span>Va (V)</span></div>
+        <div><b id="kIa">0</b><span>Ia (mA)</span></div>
+        <div><b id="kDV">0</b><span>ΔV (V)</span></div>
+        <div><b id="kDz">0</b><span>المنطقة الميتة (rpm)</span></div>
+      </div>
+      <p class="note" id="dcExplain" aria-live="polite"></p>
+    </section>
+    <section class="panel">
+      <h2>القيم</h2>
+      <div class="sl"><label for="n">السرعة n</label><input type="range" id="n" min="0" max="3000" step="10" value="1000"><output id="on">1000 rpm</output></div>
+      <div class="sl"><label for="If">تيار المجال If</label><input type="range" id="If" min="0.05" max="0.2" step="0.01" value="0.1"><output id="oIf">0.10 A</output></div>
+      <div class="sl"><label for="RL">مقاومة الحمل RL</label><input type="range" id="RL" min="0" max="100" step="1" value="100"><output id="oRL">∞</output></div>
+      <div class="sl"><label for="Ra">مقاومة المنتج Ra</label><input type="range" id="Ra" min="0" max="60" step="1" value="20"><output id="oRa">20 Ω</output></div>
+      <div class="row"><label><input type="checkbox" id="brush"> جهد تلامس الفرش Vbrush = 1 V</label></div>
+      <div class="row"><label><input type="checkbox" id="arm"> رد فعل المنتج (نقص الفيض مع تيار الحمل)</label></div>
+      <p class="note">الإجراءات في الحقيبة لتقليل الخطأ: مقاومة حمل كبيرة (حرّك RL إلى ∞)، وفرش معدنية من الفضة لتقليل جهد التلامس (ألغِ اختيار Vbrush).</p>
+      <h2>أمثلة الحقيبة</h2>
+      <div class="chips"><button data-ex="1a">مثال (2-1): الحالة الأصلية</button><button data-ex="1b">(أ) زيادة تيار المجال</button><button data-ex="1c">(ب) زيادة السرعة</button></div>
+      <div class="formula" id="dcFormula"></div>
+    </section>
+    <section class="panel">
+      <h2>معايرة التاكوميتر</h2>
+      <p class="note">تُقارن قراءة التاكوميتر بوسيلة مرجعية دقيقة مثل الستروبوسكوب، ويُصحَّح ثابت توليد الجهد كلما لزم الأمر.</p>
+      <div class="kpi">
+        <div><b id="cTrue">—</b><span>السرعة المرجعية (rpm)</span></div>
+        <div><b id="cRead">—</b><span>قراءة التاكوميتر (rpm)</span></div>
+        <div><b id="cErr">—</b><span>الخطأ</span></div>
+      </div>
+      <div class="sl"><label for="kg">ثابت المعايرة</label><input type="range" id="kg" min="0.9" max="1.1" step="0.002" value="1"><output id="okg">1.000</output></div>
+      <div class="row"><button class="btn ghost" id="newCal">مولد جديد غير معاير</button></div>
+      <p class="note" id="calFb" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <!-- ================= INDUCTION ================= -->
+  <div class="grid" id="vInd" hidden>
+    <section class="panel">
+      <h2>الملفان المتعامدان والدوار الكأسي</h2>
+      <svg id="indDraw" viewBox="0 0 320 240" role="img" aria-label="رسم المولد الحثي" style="width:100%;max-width:380px;margin:0 auto;display:block;direction:ltr"></svg>
+      <div class="sl"><label for="w">سرعة الدوار</label><input type="range" id="w" min="-100" max="100" step="1" value="40"><output id="ow">40 %</output></div>
+      <p class="note" id="indExplain" aria-live="polite"></p>
+    </section>
+    <section class="panel">
+      <h2>راسم الإشارة</h2>
+      <div class="scope"><svg id="indScope" viewBox="0 0 600 260" role="img" aria-label="جهد ملف المجال والجهد المتولد"></svg></div>
+      <div class="legend"><span><i style="background:var(--muted)"></i>جهد ملف المجال (ثابت القيمة والتردد)</span><span><i style="background:var(--teal)"></i>الجهد المتولد على ملف التوليد Ea</span></div>
+    </section>
+    <section class="panel">
+      <h2>حاسبة الجهد المتولد — المعادلة (2-13)</h2>
+      <div class="inp">
+        <label>|I1| (A)<input id="i1m" value="3.59"></label><label>∠I1 (°)<input id="i1a" value="-51.7"></label>
+        <label>Rf (Ω)<input id="zfr" value="31.9"></label><label>Xf (Ω)<input id="zfx" value="40.3"></label>
+        <label>Rb (Ω)<input id="zbr" value="1.98"></label><label>Xb (Ω)<input id="zbx" value="2.12"></label>
+        <label>n = Na/Nm<input id="nn" value="0.8"></label>
+      </div>
+      <div class="chips"><button id="ex24">مثال (2-4)</button></div>
+      <div class="calc" id="indCalc"></div>
+      <p class="note">عند بدء الحركة (s = 1) تتساوى Zf و Zb فيكون Ea = 0، وكلما زادت السرعة كبر الفرق بينهما فزاد الجهد المتولد.</p>
+    </section>
+  </div>
+
+  <!-- ================= SYNCHRONOUS ================= -->
+  <div class="grid" id="vSync" hidden>
+    <section class="panel">
+      <h2>المولد التزامني</h2>
+      <svg id="syDraw" viewBox="0 0 320 240" role="img" aria-label="رسم المولد التزامني" style="width:100%;max-width:380px;margin:0 auto;display:block;direction:ltr"></svg>
+      <div class="sl"><label for="ns">السرعة n</label><input type="range" id="ns" min="0" max="3000" step="10" value="1500"><output id="ons">1500 rpm</output></div>
+      <div class="sl"><label for="poles">عدد الأقطاب</label><input type="range" id="poles" min="2" max="8" step="2" value="4"><output id="opoles">4</output></div>
+      <div class="row"><label><input type="checkbox" id="dist"> مؤثرات: تغير الحمل ودرجة الحرارة وكثافة المجال</label></div>
+    </section>
+    <section class="panel">
+      <h2>الجهد المتولد</h2>
+      <div class="scope"><svg id="syScope" viewBox="0 0 600 240" role="img" aria-label="الجهد المتولد"></svg></div>
+      <div class="kpi">
+        <div><b id="sV">0</b><span>القيمة العظمى (V)</span></div>
+        <div><b id="sF">0</b><span>التردد f (Hz)</span></div>
+        <div><b id="sNv">0</b><span>السرعة من الجهد</span></div>
+        <div><b id="sNf">0</b><span>السرعة من التردد</span></div>
+      </div>
+      <p class="note">n = 120 f / P. فعّل المؤثرات: تتغير قيمة الجهد فتخطئ قراءة السرعة المحسوبة منه، بينما يبقى التردد مرتبطاً بالسرعة وحدها.</p>
+    </section>
+  </div>
+  <footer id="foot"></footer>
+</div>
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg', $ = id => document.getElementById(id);
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const txt = (p, x, y, s, a = {}) => { const t = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--f-mono)' }, a), p); t.textContent = s; return t; };
+const f2 = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------------- DC ----------------
+const KE = 0.12;            // V per (rpm·A): example 2-1 gives Ea = 12 V at 0.1 A, 1000 rpm
+const RLv = s => s >= 100 ? Infinity : Math.round(10 * Math.pow(100, s / 99)); // 10 Ω .. 1 kΩ, then ∞
+function dcVa(n, If, RL, Ra, Vb, kr) {
+  const Ea0 = KE * n * If;
+  if (Ea0 <= Vb) return { Ea0, Va: 0, Ia: 0 };
+  const g = RL === Infinity ? 0 : 1 / RL;
+  const Va = (Ea0 - Vb) / (1 + (Ea0 * kr + Ra) * g);  // eq (2-8) with K·Kr·ω written as Ea0·kr
+  return { Ea0, Va, Ia: Va * g };
+}
+function readDc() {
+  return { n: +$('n').value, If: +$('If').value, RL: RLv(+$('RL').value), Ra: +$('Ra').value, Vb: $('brush').checked ? 1 : 0, kr: $('arm').checked ? 1.5 : 0 };
+}
+function drawDc() {
+  const p = readDc();
+  $('on').textContent = p.n + ' rpm'; $('oIf').textContent = f2(p.If) + ' A';
+  $('oRL').textContent = p.RL === Infinity ? '∞' : p.RL + ' Ω'; $('oRa').textContent = p.Ra + ' Ω';
+  const svg = $('dcPlot'); svg.textContent = '';
+  const L = 52, B = 340, W = 570, T = 20, nMax = 3000, vMax = Math.max(20, Math.ceil(KE * nMax * p.If / 10) * 10);
+  const X = n => L + (n / nMax) * (W - L), Y = v => B - (v / vMax) * (B - T);
+  for (let i = 0; i <= 6; i++) { const n = i * 500; el('line', { x1: X(n), y1: T, x2: X(n), y2: B, stroke: 'var(--line)' }, svg); txt(svg, X(n), B + 16, n, { 'text-anchor': 'middle' }); }
+  for (let i = 0; i <= 4; i++) { const v = vMax * i / 4; el('line', { x1: L, y1: Y(v), x2: W, y2: Y(v), stroke: 'var(--line)' }, svg); txt(svg, L - 6, Y(v) + 4, f2(v, 0), { 'text-anchor': 'end' }); }
+  txt(svg, W, B + 32, 'n (rpm)', { 'text-anchor': 'end' }); txt(svg, L, T - 6, 'Va (V)');
+  let di = '', da = '';
+  for (let n = 0; n <= nMax; n += 20) {
+    di += (n ? ' L' : 'M') + X(n) + ',' + Y(KE * n * p.If);
+    da += (n ? ' L' : 'M') + X(n) + ',' + Y(dcVa(n, p.If, p.RL, p.Ra, p.Vb, p.kr).Va);
+  }
+  el('path', { d: di, fill: 'none', stroke: 'var(--muted)', 'stroke-width': 2, 'stroke-dasharray': '6 4' }, svg);
+  el('path', { d: da, fill: 'none', stroke: 'var(--teal)', 'stroke-width': 3 }, svg);
+  const r = dcVa(p.n, p.If, p.RL, p.Ra, p.Vb, p.kr);
+  el('line', { x1: X(p.n), y1: Y(r.Ea0), x2: X(p.n), y2: Y(r.Va), stroke: 'var(--mark)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }, svg);
+  el('circle', { cx: X(p.n), cy: Y(r.Va), r: 6, fill: 'var(--mark)' }, svg);
+  const dz = p.Vb / (KE * p.If);
+  if (p.Vb) { el('rect', { x: L, y: B - 6, width: X(dz) - L, height: 6, fill: 'var(--bad)', opacity: .5 }, svg); txt(svg, X(dz) + 4, B - 8, 'Δω', { fill: 'var(--bad)' }); }
+  $('kEa').textContent = f2(r.Ea0); $('kVa').textContent = f2(r.Va); $('kIa').textContent = f2(r.Ia * 1000, 1);
+  $('kDV').textContent = f2(r.Ea0 - r.Va); $('kDz').textContent = p.Vb ? f2(dz, 0) : '0';
+  const lin = p.RL === Infinity && !p.Vb;
+  $('dcExplain').textContent = lin
+    ? 'الحمل مفتوح (RL = ∞) ولا يوجد جهد تلامس: لا يمر تيار في المنتج، فيكون Va = Ea وتكون العلاقة مع السرعة خطية تماماً.'
+    : `يمر تيار ${f2(r.Ia * 1000, 1)} mA في المنتج، فينخفض الجهد على الأطراف عن المثالي بمقدار ΔV = ${f2(r.Ea0 - r.Va)} V.` + (p.Vb ? ` ولا يظهر جهد على الأطراف قبل ${f2(dz, 0)} rpm (المنطقة الميتة).` : '') + (p.kr ? ' ورد فعل المنتج يُضعف الفيض فيزداد الانحناء مع السرعة.' : '');
+  $('dcFormula').textContent = `Ea = KE·n·If = 0.12 × ${p.n} × ${f2(p.If)} = ${f2(r.Ea0)} V`;
+}
+['n', 'If', 'RL', 'Ra', 'brush', 'arm'].forEach(id => $(id).addEventListener('input', drawDc));
+document.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => {
+  const ex = { '1a': [1000, 0.1], '1b': [1000, 0.15], '1c': [1400, 0.1] }[b.dataset.ex];
+  $('n').value = ex[0]; $('If').value = ex[1]; $('RL').value = 100; $('brush').checked = false; $('arm').checked = false; drawDc();
+});
+// calibration exercise
+let calTrue = 0, calGain = 1;
+function newCal() { calTrue = 600 + Math.round(Math.random() * 18) * 100; calGain = 1 + (Math.random() < .5 ? -1 : 1) * (0.03 + Math.random() * 0.05); $('kg').value = 1; drawCal(); }
+function drawCal() {
+  const k = +$('kg').value; $('okg').textContent = f2(k, 3);
+  const read = calTrue * calGain * k, err = (read - calTrue) / calTrue * 100;
+  $('cTrue').textContent = calTrue; $('cRead').textContent = f2(read, 0); $('cErr').textContent = (err > 0 ? '+' : '') + f2(err, 1) + ' %';
+  $('calFb').className = 'note ' + (Math.abs(err) < 0.3 ? 'ok' : '');
+  $('calFb').textContent = Math.abs(err) < 0.3 ? 'تمت المعايرة: قراءة التاكوميتر تطابق المرجع.' : 'حرّك ثابت المعايرة حتى تطابق القراءة السرعة المرجعية.';
+}
+$('kg').oninput = drawCal; $('newCal').onclick = newCal;
+
+// ---------------- INDUCTION ----------------
+let tInd = 0, rotInd = 0;
+function drawIndStatic() {
+  const s = $('indDraw'); s.textContent = '';
+  const cx = 160, cy = 120;
+  // field winding (horizontal) and generating winding (vertical), 90° apart
+  el('rect', { x: 40, y: 104, width: 40, height: 32, rx: 4, fill: 'var(--steel)', stroke: 'var(--steel-d)' }, s);
+  el('rect', { x: 240, y: 104, width: 40, height: 32, rx: 4, fill: 'var(--steel)', stroke: 'var(--steel-d)' }, s);
+  el('rect', { x: 144, y: 14, width: 32, height: 40, rx: 4, fill: 'var(--teal-soft)', stroke: 'var(--teal)' }, s);
+  el('rect', { x: 144, y: 186, width: 32, height: 40, rx: 4, fill: 'var(--teal-soft)', stroke: 'var(--teal)' }, s);
+  txt(s, 60, 98, 'm', { 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--fg)' }); txt(s, 196, 30, 'a', { 'font-size': 13, fill: 'var(--teal)' });
+  txt(s, 20, 160, 'Field winding', { 'font-size': 10 }); txt(s, 186, 214, 'Generating winding', { 'font-size': 10, fill: 'var(--teal)' });
+  el('circle', { cx, cy, r: 52, fill: 'none', stroke: 'var(--fg)', 'stroke-width': 5, opacity: .75 }, s);
+  el('circle', { cx, cy, r: 26, fill: 'var(--steel)', stroke: 'var(--steel-d)' }, s);
+  const g = el('g', { id: 'cup' }, s);
+  for (let k = 0; k < 6; k++) { const a = k * 60 * Math.PI / 180; el('line', { x1: cx + 46 * Math.cos(a), y1: cy + 46 * Math.sin(a), x2: cx + 58 * Math.cos(a), y2: cy + 58 * Math.sin(a), stroke: 'var(--mark)', 'stroke-width': 3 }, g); }
+  txt(s, cx, cy + 4, 'Drag-cup', { 'text-anchor': 'middle', 'font-size': 9, fill: 'var(--fg)' });
+}
+function drawInd() {
+  const w = +$('w').value / 100; $('ow').textContent = Math.round(w * 100) + ' %';
+  const s = $('indScope'); s.textContent = '';
+  const L = 30, R = 590, H = 260, mid = 130, A = 90;
+  el('line', { x1: L, y1: mid, x2: R, y2: mid, stroke: 'var(--line)' }, s);
+  for (let i = 0; i <= 8; i++) el('line', { x1: L + i * (R - L) / 8, y1: 20, x2: L + i * (R - L) / 8, y2: 240, stroke: 'var(--line)', 'stroke-dasharray': '2 4' }, s);
+  let d1 = '', d2 = '';
+  for (let i = 0; i <= 300; i++) {
+    const x = L + i * (R - L) / 300, ph = 2 * Math.PI * 3 * i / 300 + tInd;
+    d1 += (i ? ' L' : 'M') + x + ',' + (mid - A * 0.8 * Math.sin(ph));
+    d2 += (i ? ' L' : 'M') + x + ',' + (mid - A * w * Math.sin(ph + Math.PI / 2));
+  }
+  el('path', { d: d1, fill: 'none', stroke: 'var(--muted)', 'stroke-width': 2 }, s);
+  el('path', { d: d2, fill: 'none', stroke: 'var(--teal)', 'stroke-width': 3 }, s);
+  $('indExplain').textContent = w === 0
+    ? 'الدوار ساكن: محصلة الفيض في اتجاه ملف المجال فقط، وهي متعامدة مع ملف التوليد، فلا يتولد عليه جهد.'
+    : `يدور الدوار ${w > 0 ? 'في الاتجاه الموجب' : 'في الاتجاه المعاكس'}: يتولد على ملف التوليد جهد قيمته تتناسب مع السرعة (${Math.round(Math.abs(w) * 100)} % من أقصاه)، وله نفس تردد ملف المجال${w < 0 ? '، وتنعكس زاوية طوره عند عكس اتجاه الدوران' : ''}.`;
+}
+function indCalc() {
+  const v = id => parseFloat($(id).value);
+  const vals = ['i1m', 'i1a', 'zfr', 'zfx', 'zbr', 'zbx', 'nn'].map(v);
+  if (vals.some(isNaN)) { $('indCalc').textContent = 'أدخل أرقاماً صحيحة في جميع الحقول.'; return; }
+  const [m, a, fr, fx, br, bx, n] = vals;
+  const dr = fr - br, dx = fx - bx, dm = Math.hypot(dr, dx), da = Math.atan2(dx, dr) * 180 / Math.PI;
+  const mag = 0.5 * n * m * dm, ang = a + da + 90;
+  $('indCalc').textContent =
+    `Ea = j·0.5·n·I1·(Zf − Zb)\n` +
+    `Zf − Zb = ${f2(dr)} + j${f2(dx)} = ${f2(dm)} ∠ ${f2(da)}°\n` +
+    `0.5 × ${n} × ${m} = ${f2(0.5 * n * m, 3)}\n` +
+    `Ea = ${f2(mag)} ∠ ${f2(ang)}°  V`;
+}
+['i1m', 'i1a', 'zfr', 'zfx', 'zbr', 'zbx', 'nn'].forEach(id => $(id).addEventListener('input', indCalc));
+$('ex24').onclick = () => { [['i1m', 3.59], ['i1a', -51.7], ['zfr', 31.9], ['zfx', 40.3], ['zbr', 1.98], ['zbx', 2.12], ['nn', 0.8]].forEach(([k, v]) => $(k).value = v); indCalc(); };
+$('w').oninput = drawInd;
+
+// ---------------- SYNCHRONOUS ----------------
+let tSy = 0;
+function drawSyStatic() {
+  const s = $('syDraw'); s.textContent = '';
+  el('circle', { cx: 160, cy: 120, r: 100, fill: 'var(--bg)', stroke: 'var(--steel-d)', 'stroke-width': 2 }, s);
+  el('circle', { cx: 160, cy: 120, r: 80, fill: 'var(--surface)', stroke: 'var(--steel-d)' }, s);
+  el('rect', { x: 140, y: 22, width: 40, height: 22, rx: 3, fill: 'var(--teal-soft)', stroke: 'var(--teal)' }, s);
+  txt(s, 160, 16, 'Stator coil', { 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--teal)' });
+  el('g', { id: 'syRot' }, s);
+}
+function drawSy() {
+  const n = +$('ns').value, P = +$('poles').value; $('ons').textContent = n + ' rpm'; $('opoles').textContent = P;
+  const g = $('syRot'); g.textContent = '';
+  for (let k = 0; k < P; k++) {
+    const a0 = (k / P) * 2 * Math.PI, a1 = ((k + 1) / P) * 2 * Math.PI, r = 66;
+    const x0 = 160 + r * Math.sin(a0), y0 = 120 - r * Math.cos(a0), x1 = 160 + r * Math.sin(a1), y1 = 120 - r * Math.cos(a1);
+    el('path', { d: `M160,120 L${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1} Z`, fill: k % 2 ? 'var(--teal-soft)' : 'var(--teal)', stroke: 'var(--fg)' }, g);
+    const am = (a0 + a1) / 2; txt(g, 160 + 44 * Math.sin(am), 124 - 44 * Math.cos(am), k % 2 ? 'N' : 'S', { 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 700, fill: k % 2 ? 'var(--fg)' : '#fff' });
+  }
+  g.setAttribute('transform', `rotate(${tSy * 180 / Math.PI / P * 2} 160 120)`);
+  const f = P * n / 120, k = 0.01, dist = $('dist').checked ? 0.85 + 0.1 * Math.sin(tSy / 7) : 1;
+  const Vm = k * n * dist;
+  const s = $('syScope'); s.textContent = '';
+  const L = 30, R = 590, mid = 120, Amax = 100, vFull = k * 3000;
+  el('line', { x1: L, y1: mid, x2: R, y2: mid, stroke: 'var(--line)' }, s);
+  let d = '';
+  const span = 0.2; // seconds shown
+  for (let i = 0; i <= 400; i++) { const t = i / 400 * span; d += (i ? ' L' : 'M') + (L + i * (R - L) / 400) + ',' + (mid - Amax * Vm / vFull * Math.sin(2 * Math.PI * f * t)); }
+  el('path', { d, fill: 'none', stroke: 'var(--teal)', 'stroke-width': 2.4 }, s);
+  txt(s, R, 232, '0.2 s', { 'text-anchor': 'end' });
+  $('sV').textContent = f2(Vm, 1); $('sF').textContent = f2(f, 1);
+  $('sNv').textContent = f2(Vm / k, 0) + ' rpm'; $('sNf').textContent = f2(120 * f / P, 0) + ' rpm';
+  $('sNv').className = Math.abs(Vm / k - n) > 5 ? 'bad' : ''; $('sNf').className = 'ok';
+}
+['ns', 'poles', 'dist'].forEach(id => $(id).addEventListener('input', drawSy));
+
+// ---------------- tabs / animation ----------------
+const CFG = {
+  dc: { h: 'مولد التاكو للتيار المستمر', lead: 'غيّر السرعة وتيار المجال والحمل، ولاحظ متى تبقى العلاقة بين الجهد والسرعة خطية، ومتى يظهر الخطأ ΔV والمنطقة الميتة.', foot: 'المرجع: الحقيبة — القسم (2-2)، المعادلات (2-2) إلى (2-8)، الشكلان (2-1) و(2-2)، والأمثلة (2-1) إلى (2-3)، والقسم (2-5). الأهداف 2-4 إلى 2-7 و2-11.' },
+  ind: { h: 'مولد التاكو الحثي', lead: 'حرّك سرعة الدوار الكأسي من السكون إلى الاتجاهين، وقارن الجهد المتولد بجهد ملف المجال على راسم الإشارة.', foot: 'المرجع: الحقيبة — القسم (2-3)، المعادلات (2-9) إلى (2-13)، الشكل (2-3)، والمثال (2-4). الأهداف 2-8 و2-9.' },
+  sync: { h: 'مولد التاكو التزامني', lead: 'زِد السرعة ولاحظ أن قيمة الجهد وتردده يزدادان معاً، ثم فعّل المؤثرات لترى لماذا يكون قياس السرعة بالتردد أدق.', foot: 'المرجع: الحقيبة — القسم (2-4). الهدف 2-10.' } };
+let kind = 'dc';
+function setKind() {
+  kind = ({ '#ind': 'ind', '#sync': 'sync' })[location.hash] || 'dc';
+  $('h1').textContent = CFG[kind].h; $('lead').textContent = CFG[kind].lead; $('foot').textContent = CFG[kind].foot;
+  $('vDc').hidden = kind !== 'dc'; $('vInd').hidden = kind !== 'ind'; $('vSync').hidden = kind !== 'sync';
+  [['tDc', 'dc'], ['tInd', 'ind'], ['tSync', 'sync']].forEach(([id, k]) => $(id).setAttribute('aria-current', kind === k ? 'page' : 'false'));
+}
+let last = performance.now();
+function loop(ts) {
+  const dt = (ts - last) / 1000; last = ts;
+  if (!reduce) {
+    if (kind === 'ind') { tInd -= dt * 3; rotInd += dt * 360 * (+$('w').value / 100); $('cup').setAttribute('transform', `rotate(${rotInd} 160 120)`); drawInd(); }
+    if (kind === 'sync') { tSy += dt * 2 * Math.PI * (+$('ns').value / 60) * 0.05; drawSy(); }
+  }
+  requestAnimationFrame(loop);
+}
+addEventListener('hashchange', setKind);
+drawDc(); newCal(); drawIndStatic(); drawInd(); indCalc(); drawSyStatic(); drawSy(); setKind();
+requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
