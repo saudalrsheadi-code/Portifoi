@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>محاكي خواص المحركات الكهربائية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+[hidden]{display:none!important}
+:root{
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2; --wire:#2c3b41;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#c0661c; --mark-soft:#f7e6d6;
+  --ok:#2e7d4f; --bad:#b23b3b; --grid:#e6eded;
+  --f-body:"Cairo","Segoe UI",Tahoma,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f; --wire:#c9d6da;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#f0a35e; --mark-soft:#3d2a1a;
+  --ok:#5cc489; --bad:#e07b7b; --grid:#203034; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f; --wire:#c9d6da;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#f0a35e; --mark-soft:#3d2a1a;
+  --ok:#5cc489; --bad:#e07b7b; --grid:#203034; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:4px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:70ch}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:5px 14px;min-height:36px;display:inline-flex;align-items:center}
+.tabs a[aria-current="page"]{background:var(--teal);color:#fff}
+.objs{display:flex;flex-wrap:wrap;gap:8px}
+.obj{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;flex:1 1 260px}
+.obj b{flex:none;background:var(--teal);color:#fff;border-radius:6px;padding:0 7px;font-size:12px;line-height:22px;font-family:var(--f-mono);direction:ltr}
+.obj.lab b{background:var(--blue)}
+.grid{display:grid;gap:16px}
+@media (min-width:920px){.grid.two{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:16px;color:var(--teal)}
+.panel h2 small{color:var(--muted);font-weight:400;font-size:12px;margin-inline-start:6px}
+.ckt svg{direction:ltr;width:100%;display:block}
+.wv svg{direction:ltr;width:100%;display:block}
+svg text{font-family:var(--f-body)}
+.w{stroke:var(--wire);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dev .body{stroke:var(--wire);stroke-width:2;stroke-linejoin:round}
+.dev.scr .body{fill:var(--surface)} .dev.dio .body{fill:var(--wire)}
+.dev .bar,.dev .gate{stroke:var(--wire);stroke-width:2;fill:none}
+.dev.on .body{fill:var(--mark);stroke:var(--mark)} .dev.on .bar,.dev.on .gate{stroke:var(--mark)}
+.dev text,.lbl{fill:var(--fg);font-size:15px;font-weight:600}
+.lbl.m{fill:var(--muted);font-weight:400;font-size:13px}
+.flow{fill:none;stroke:var(--mark);stroke-width:4;stroke-dasharray:7 11;stroke-linecap:round;stroke-linejoin:round;opacity:.9;animation:run .7s linear infinite}
+@keyframes run{to{stroke-dashoffset:-36}}
+.flow.hidden{display:none}
+.mot{fill:var(--surface);stroke:var(--wire);stroke-width:2}
+.box{fill:var(--teal-soft);stroke:var(--teal);stroke-width:1.5}
+.inst{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.inst div,.kpi div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center;min-width:0}
+.inst b,.kpi b{display:block;font-family:var(--f-mono);font-size:16px;direction:ltr;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inst span,.kpi span{font-size:12px;color:var(--muted)}
+.kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpi b{font-size:18px}
+.now{font-size:14px;margin:0;min-height:1.7em}
+.now b{color:var(--mark)}
+.ctrl{display:grid;gap:10px}
+.sl{display:grid;grid-template-columns:auto minmax(0,1fr) 70px;gap:10px;align-items:center}
+.sl label{font-size:14px;color:var(--fg);font-weight:600}
+.sl output{font-family:var(--f-mono);direction:ltr;text-align:left;font-size:15px}
+input[type=range]{width:100%;accent-color:var(--teal);min-height:28px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer;min-height:38px}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:14px;border-radius:8px;padding:6px 14px;cursor:pointer;min-height:40px}
+.btn.ghost{background:transparent;color:var(--teal)}
+.btn.sm{min-height:34px;font-size:13px;padding:3px 10px;font-weight:600}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px}
+.chk input{width:18px;height:18px;accent-color:var(--teal)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmp div{border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.cmp span{font-size:12px;color:var(--muted);display:block}
+.cmp b{font-family:var(--f-mono);direction:ltr;display:block;text-align:right}
+.status{font-size:14px;margin:0;padding:8px 10px;border-radius:8px;background:var(--teal-soft)}
+.status.warn{background:var(--mark-soft)}
+.status.bad{background:#f7dede;color:#7a1f1f}
+@media (prefers-color-scheme: dark){.status.bad{background:#3d1d1d;color:#f3c2c2}}
+.quads{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qd{display:grid;gap:4px;justify-items:center}
+.qd svg{width:100%;max-width:190px;direction:ltr}
+.qd p{margin:0;font-size:12px;color:var(--muted);text-align:center}
+.qcell{fill:var(--bg);stroke:var(--line)} .qcell.on{fill:var(--teal)}
+.qtxt{font-size:11px;fill:var(--muted)} .qtxt.on{fill:#fff;font-weight:600}
+.inp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.inp label{display:grid;gap:2px;font-size:13px;color:var(--muted)}
+.inp input{font:inherit;font-family:var(--f-mono);font-size:15px;direction:ltr;text-align:left;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);color:var(--fg);width:100%;min-height:40px}
+@media (max-width:520px){.inp{grid-template-columns:repeat(2,minmax(0,1fr))} .inst{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ex{display:flex;flex-wrap:wrap;gap:6px}
+.ex button{border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:13px;border-radius:999px;padding:4px 12px;cursor:pointer;min-height:34px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.task{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.task.done{border-color:var(--ok)}
+.task h3{margin:0;font-size:14px;display:flex;gap:8px;align-items:center}
+.task h3 b{font-family:var(--f-mono);direction:ltr;background:var(--teal-soft);color:var(--teal);border-radius:6px;padding:0 6px;font-size:12px}
+.task h3 .ok{color:var(--ok);margin-inline-start:auto;font-size:13px}
+.task p{margin:0;font-size:14px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:5px 12px;cursor:pointer;min-height:38px}
+.opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--surface))}
+.opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.fb{font-size:14px;margin:0}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.act{background:var(--bg);border-radius:8px;padding:8px 10px;display:grid;gap:6px}
+.act p b{color:var(--teal)}
+.numin{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.numin input{width:110px;font:inherit;font-family:var(--f-mono);direction:ltr;border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-height:38px;background:var(--surface);color:var(--fg)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--line);padding:4px 6px;text-align:center;white-space:nowrap}
+th{background:var(--teal-soft);color:var(--teal);font-weight:600}
+td.e{font-family:var(--f-mono);direction:ltr;color:var(--muted)}
+td input{width:76px;font:inherit;font-family:var(--f-mono);direction:ltr;text-align:center;border:1px solid var(--line);border-radius:6px;padding:3px 4px;background:var(--surface);color:var(--fg);min-height:34px}
+td.err{font-family:var(--f-mono);direction:ltr}
+td.err.hi{color:var(--bad);font-weight:600}
+.charts{display:grid;gap:10px}
+@media (min-width:700px){.charts{grid-template-columns:1fr 1fr}}
+.charts svg{width:100%;direction:ltr;background:var(--bg);border-radius:8px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-left:4px}
+.score{font-weight:600;color:var(--teal);margin:0}
+footer{font-size:12px;color:var(--muted)}
+.how{margin:0;padding-inline-start:20px;font-size:14px}
+@media (prefers-reduced-motion: reduce){.flow{animation:none}}
+</style>
+<style>
+.plot svg{direction:ltr;width:100%;display:block}
+.rot{display:flex;gap:12px;align-items:center}
+.rot svg{width:84px;height:84px;flex:none;direction:ltr}
+.rot p{margin:0;font-size:13px;color:var(--muted)}
+.pf{display:grid;gap:4px}
+.pf .r{display:grid;grid-template-columns:150px minmax(0,1fr) 84px;gap:8px;align-items:center;font-size:13px}
+.pf .bar{height:14px;border-radius:3px;background:var(--teal)}
+.pf .bar.loss{background:var(--mark)}
+.pf .r b{font-family:var(--f-mono);direction:ltr;text-align:left;font-weight:600}
+@media (max-width:520px){.pf .r{grid-template-columns:110px minmax(0,1fr) 70px}}
+.sl label small{font-weight:400;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">التحكم الإلكتروني في الآلات (242 كهرا) — الوحدة الأولى: مراجعة على خواص المحركات الكهربائية</div>
+  <h1 id="ttl"></h1>
+  <p class="lead" id="lead"></p>
+  <nav class="tabs" aria-label="نوع المحرك">
+    <a href="#sep" data-m="sep">تيار مستمر — تغذية منفصلة</a>
+    <a href="#ser" data-m="ser">تيار مستمر — توالٍ</a>
+    <a href="#im" data-m="im">حثي ثلاثي الأوجه</a>
+    <a href="#syn" data-m="syn">تزامني</a>
+  </nav>
+</header>
+
+<section class="panel" aria-labelledby="h-obj">
+  <h2 id="h-obj">ماذا ستتعلم هنا؟</h2>
+  <div class="objs" id="objs"></div>
+  <ol class="how">
+    <li>أجب عن سؤال التوقع في كل مهمة قبل أن تغيّر شيئاً، ثم نفّذ وتحقق.</li>
+    <li>غيّر القيم من «التحكم» وراقب انتقال نقطة التشغيل على المنحنى وسرعة الدوران.</li>
+    <li>أزرار الأمثلة تضبط بيانات أمثلة الحقيبة لتتحقق من حلك.</li>
+  </ol>
+</section>
+
+<div class="grid two">
+  <section class="panel" aria-labelledby="h-ckt">
+    <h2 id="h-ckt">الدائرة المكافئة <small id="cktsub"></small></h2>
+    <div class="ckt" id="ckt"></div>
+    <div class="rot"><svg viewBox="-42 -42 84 84" aria-hidden="true"><circle r="38" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/><circle r="26" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="2"/><g id="rotor"><line x1="0" y1="0" x2="0" y2="-24" stroke="var(--mark)" stroke-width="4" stroke-linecap="round"/><circle r="4" fill="var(--wire)"/></g></svg>
+      <p id="rotTxt"></p></div>
+    <div class="kpi" id="kpi"></div>
+  </section>
+  <section class="panel plot" aria-labelledby="h-plot">
+    <h2 id="h-plot">منحنى الخواص <small id="plotsub"></small></h2>
+    <div id="plot"></div>
+    <div class="legend" id="legend"></div>
+    <p class="status" id="status"></p>
+  </section>
+</div>
+
+<div class="grid two">
+  <section class="panel ctrl" aria-labelledby="h-ctl">
+    <h2 id="h-ctl">التحكم</h2>
+    <div id="sliders" class="ctrl"></div>
+    <div id="extra"></div>
+  </section>
+  <section class="panel" aria-labelledby="h-dat">
+    <h2 id="h-dat">بيانات المحرك</h2>
+    <div class="inp" id="inputs"></div>
+    <p class="note">أمثلة الحقيبة جاهزة للتحقق من حلك:</p>
+    <div class="ex" id="ex"></div>
+    <p class="note" id="dnote"></p>
+  </section>
+</div>
+
+<section class="panel" id="pfPanel" aria-labelledby="h-pf" hidden>
+  <h2 id="h-pf">مخطط سريان القدرة <small>عند نقطة التشغيل الحالية</small></h2>
+  <div class="pf" id="pf"></div>
+  <p class="note">يُحسب من الدائرة المكافئة التقريبية (الشكل 1-6): فرع المغنطة على أطراف المصدر، فيمر <bdi>I2′</bdi> في <bdi>R1</bdi>، وتُضاف المفاقيد الحديدية إلى قدرة الدخل. انظر التصحيحات أ-4 إلى أ-6 والملحق ب-4.</p>
+</section>
+
+<section class="panel" aria-labelledby="h-task">
+  <h2 id="h-task">مهام المحاكاة: توقّع، ثم نفّذ، ثم تحقّق</h2>
+  <p class="note">كل مهمة مرتبطة بهدف من أهداف الوحدة. اختر توقعك أولاً.</p>
+  <div id="tasks" class="grid"></div>
+</section>
+
+<section class="panel" aria-labelledby="h-q">
+  <h2 id="h-q">تقويم ذاتي</h2>
+  <div id="quiz" class="grid"></div>
+  <p class="score" id="score"></p>
+</section>
+
+<footer>المرجع: الحقيبة التدريبية «التحكم الإلكتروني في الآلات» — الوحدة الأولى: المعادلات (1-1) إلى (1-16)، والأشكال (1-1) إلى (1-10)، والأمثلة (1-1) إلى (1-3)، والملحق ب-4. المحرك التزامني ببيانات افتراضية للتوضيح.</footer>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const sv = (tag, a, p, t) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; if (p) p.appendChild(e); return e; };
+const fmt = (x, d = 1) => (!isFinite(x) ? '—' : (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d));
+const bidi = t => t.replace(/و(?=[A-Za-z])/g, 'و ').replace(/([A-Za-z][A-Za-z0-9′']*)/g, '<bdi dir="ltr">$1</bdi>');
+const rpm = w => w * 60 / (2 * Math.PI), rad = n => n * 2 * Math.PI / 60;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------ content -- */
+const OBJ = {
+  '1-3': 'يحسب تيار المنتج والسرعة وجهد المنتج لمحرك التغذية المنفصلة بخطأ لا يتجاوز 2%.',
+  '1-4': 'يرسم العلاقة بين العزم والسرعة لمحرك التغذية المنفصلة ويفسر أثر الجهد والعزم عليها.',
+  '1-5': 'يحسب تيار المنتج وجهده والسرعة لمحرك التوالي بخطأ لا يتجاوز 2%.',
+  '1-6': 'يرسم العلاقة بين العزم والسرعة لمحرك التوالي ويعلل وجوب تحميله قبل التشغيل.',
+  '1-7': 'يحسب الانزلاق والتيار ومعامل القدرة والقدرات والعزم للمحرك الحثي بمخطط سريان القدرة.',
+  '1-8': 'يرسم العلاقة بين العزم والانزلاق ويحدد عزم البدء وأقصى عزم ومنطقتي الاتزان.',
+  '1-9': 'يشرح عمل المحرك التزامني ويكتب معادلة عزمه لنوعي العضو الدائر.'
+};
+const MODES = {
+  sep: { t: 'محرك التيار المستمر ذو التغذية المنفصلة', lead: 'دائرتا المنتج والمجال مستقلتان. المجال ثابت، فالعلاقة بين العزم والسرعة خط مستقيم يميل قليلاً، ويرتفع موازياً لنفسه كلما زاد جهد المنتج.', objs: ['1-3', '1-4'], sub: 'الشكل (1-1)', psub: 'السرعة مع العزم — الشكل (1-2)' },
+  ser: { t: 'محرك التيار المستمر من نوع التوالي', lead: 'المجال على التوالي مع المنتج، فالعزم يتناسب مع مربع التيار: عزم بدء عالٍ جداً، والسرعة ترتفع بشدة عند خفة الحمل.', objs: ['1-5', '1-6'], sub: 'الشكل (1-3)', psub: 'السرعة مع العزم — الشكل (1-4)' },
+  im: { t: 'المحرك الحثي ثلاثي الأوجه', lead: 'يدور بسرعة أقل قليلاً من سرعة التزامن. نقطة التشغيل تقاطع منحنى العزم مع عزم الحمل في المنطقة المستقرة بين أقصى عزم والانزلاق صفر.', objs: ['1-7', '1-8'], sub: 'الدائرة التقريبية — الشكل (1-6)', psub: 'العزم مع الانزلاق — الشكل (1-8)' },
+  syn: { t: 'المحرك التزامني', lead: 'يدور بسرعة التزامن مهما تغير الحمل؛ الحمل يغيّر زاوية القدرة δ، وتيار المجال يغيّر معامل القدرة من متأخر إلى متقدم.', objs: ['1-9'], sub: 'الشكلان (1-9) و(1-10)', psub: 'العزم مع زاوية القدرة' }
+};
+const DEF = {
+  sep: { Va: 440, Vf: 440, Ra: 0.15, Rf: 300, Kv: 1.15, TL: 100 },
+  ser: { Va: 149.43, Ra: 0.04, Rf: 0.06, Kv: 0.032, TL: 60, nr: 1500 },
+  im: { VL: 460, f: 60, P: 4, R1: 0.64, R2: 0.333, X1: 1.1, X2: 0.465, Xc: 27, Pc: 300, Pf: 700, TL: 79.3, n: 1750, by: 'n' },
+  syn: { VL: 460, f: 60, P: 4, Xs: 2.5, Xd: 2.5, Xq: 1.6, Ef: 250, TL: 120, rotor: 'cyl' }
+};
+const INPUTS = {
+  sep: [['Va', 'جهد المنتج Va (V)'], ['Vf', 'جهد المجال Vf (V)'], ['Ra', 'مقاومة المنتج Ra (Ω)'], ['Rf', 'مقاومة المجال Rf (Ω)'], ['Kv', 'ثابت الجهد Kv (V/A·rad/s)'], ['TL', 'عزم الحمل TL (N·m)']],
+  ser: [['Va', 'جهد المنتج Va (V)'], ['Ra', 'مقاومة المنتج Ra (Ω)'], ['Rf', 'مقاومة المجال Rf (Ω)'], ['Kv', 'ثابت الجهد Kv (V/A·rad/s)'], ['TL', 'عزم الحمل TL (N·m)'], ['nr', 'السرعة المقننة (rpm)']],
+  im: [['VL', 'جهد الخط VL (V)'], ['f', 'التردد f (Hz)'], ['P', 'عدد الأقطاب P'], ['R1', 'R1 (Ω)'], ['R2', 'R2′ (Ω)'], ['X1', 'X1 (Ω)'], ['X2', 'X2′ (Ω)'], ['Xc', 'Xc (Ω)'], ['Pc', 'المفاقيد الحديدية (W)'], ['Pf', 'مفاقيد الاحتكاك (W)']],
+  syn: [['VL', 'جهد الخط VL (V)'], ['f', 'التردد f (Hz)'], ['P', 'عدد الأقطاب P'], ['Xs', 'Xs (Ω) — أسطواني'], ['Xd', 'Xd (Ω) — بارز'], ['Xq', 'Xq (Ω) — بارز']]
+};
+const SLIDERS = {
+  sep: [['Va', 'جهد المنتج Va', 0, 600, 1, 'V'], ['Vf', 'جهد المجال Vf', 100, 500, 1, 'V'], ['TL', 'عزم الحمل TL', 0, 250, 1, 'N·m']],
+  ser: [['Va', 'جهد المنتج Va', 20, 600, 0.01, 'V'], ['TL', 'عزم الحمل TL', 1, 250, 1, 'N·m']],
+  im: [['VL', 'جهد المصدر VL', 200, 520, 1, 'V'], ['R2', 'مقاومة العضو الدائر R2′', 0.1, 3, 0.001, 'Ω'], ['TL', 'عزم الحمل TL', 0, 200, 0.1, 'N·m'], ['n', 'سرعة المحرك n', 1500, 1799, 1, 'rpm']],
+  syn: [['Ef', 'جهد المجال Ef (لكل وجه)', 100, 500, 1, 'V'], ['TL', 'عزم الحمل TL', 0, 400, 1, 'N·m']]
+};
+const EXAMPLES = {
+  sep: [['مثال (1-1): 100 N·m', { ...DEF.sep }], ['مثال (1-1): زيادة الحمل 20%', { ...DEF.sep, TL: 120 }]],
+  ser: [['مثال (1-2): 1000 rpm', { ...DEF.ser }], ['مثال (1-2): 1200 rpm', { ...DEF.ser, Va: 178.45 }]],
+  im: [['مثال (1-3): 1750 rpm', { ...DEF.im, by: 'n', n: 1750 }], ['السؤال السابع: s = 0.02', { VL: 460, f: 60, P: 4, R1: 0.65, R2: 0.34, X1: 1.11, X2: 0.55, Xc: 30, Pc: 320, Pf: 700, TL: 56.9, n: 1764, by: 'n' }]],
+  syn: [['عضو أسطواني', { ...DEF.syn, rotor: 'cyl' }], ['أقطاب بارزة', { ...DEF.syn, rotor: 'sal' }]]
+};
+let mode = 'sep', S = {}, R = {};
+
+/* ------------------------------------------------------------ physics -- */
+function compSep(s) {
+  const If = s.Vf / s.Rf, K = s.Kv * If, Ia = s.TL / K, Eb = s.Va - Ia * s.Ra, w = Eb / K;
+  const stall = w <= 0;
+  return { If, K, Ia: stall ? s.Va / s.Ra : Ia, Eb: stall ? 0 : Eb, w: Math.max(0, w), n: Math.max(0, rpm(w)), stall,
+    Pin: s.Va * (stall ? s.Va / s.Ra : Ia) + s.Vf * If, Pout: stall ? 0 : s.TL * w };
+}
+const sepCurve = (s, Va) => { const K = s.Kv * s.Vf / s.Rf; return T => rpm((Va - T / K * s.Ra) / K); };
+function compSer(s) {
+  const Ia = Math.sqrt(s.TL / s.Kv), Eb = s.Va - Ia * (s.Ra + s.Rf), w = Eb / (s.Kv * Ia);
+  return { Ia, Eb, w: Math.max(0, w), n: Math.max(0, rpm(w)), stall: w <= 0, Pin: s.Va * Ia, Pout: s.TL * Math.max(0, w), over: rpm(w) > s.nr };
+}
+const serCurve = (s, Va) => T => { const I = Math.sqrt(T / s.Kv); return rpm((Va - I * (s.Ra + s.Rf)) / (s.Kv * I)); };
+function imAt(s, sl) {
+  const V = s.VL / Math.sqrt(3), ns = 120 * s.f / s.P, ws = rad(ns), w = ws * (1 - sl);
+  const Zr = s.R1 + s.R2 / sl, Zx = s.X1 + s.X2, Zm = Math.hypot(Zr, Zx);
+  const I2 = V / Zm, ang2 = -Math.atan2(Zx, Zr);
+  const I1re = I2 * Math.cos(ang2), I1im = I2 * Math.sin(ang2) - V / s.Xc, I1 = Math.hypot(I1re, I1im), phi = Math.atan2(I1im, I1re);
+  const Pin = 3 * V * I1 * Math.cos(phi), Pst = 3 * I2 * I2 * s.R1, Pg = 3 * I2 * I2 * s.R2 / sl, Pcu2 = sl * Pg, Pm = Pg - Pcu2;
+  const Td = Pg / ws, Psh = Pm - s.Pf, Tsh = w > 0 ? Psh / w : 0;
+  return { V, ns, ws, w, n: rpm(w), s: sl, I2, I1, pf: Math.cos(phi), Pin, Pc: s.Pc, Ptot: Pin + s.Pc, Pst, Pg, Pcu2, Pm, Psh, Td, Tsh, eff: Psh / (Pin + s.Pc) };
+}
+function imMax(s) { // max torque slip (approximate circuit)
+  const sm = s.R2 / Math.hypot(s.R1, s.X1 + s.X2); const a = imAt(s, sm); return { sm, Tm: a.Td, Tst: imAt(s, 1).Td };
+}
+function compIm(s) {
+  const mx = imMax(s); let a, stall = false;
+  if (s.by === 'n') {
+    const ns = 120 * s.f / s.P; const sl = Math.min(0.999, Math.max(1e-4, (ns - s.n) / ns)); a = imAt(s, sl);
+  } else {
+    // shaft torque balance in the stable region: Tsh(s) = TL, Tsh increasing on (0, sm)
+    const g = sl => imAt(s, sl).Tsh - s.TL;
+    if (g(mx.sm) < 0) { stall = true; a = imAt(s, 1); }
+    else { let lo = 1e-5, hi = mx.sm; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (g(m) > 0) hi = m; else lo = m; } a = imAt(s, (lo + hi) / 2); }
+  }
+  return { ...a, ...mx, stall };
+}
+function synCalc(s) {
+  const V = s.VL / Math.sqrt(3), ns = 120 * s.f / s.P, ws = rad(ns), cyl = s.rotor === 'cyl';
+  const T = d => cyl ? 3 * V * s.Ef * Math.sin(d) / (ws * s.Xs) : 3 * V * s.Ef * Math.sin(d) / (ws * s.Xd) + 3 * V * V / (2 * ws) * (s.Xd - s.Xq) / (s.Xd * s.Xq) * Math.sin(2 * d);
+  let dmax = Math.PI / 2, Tm = 0;
+  for (let k = 1; k < 1800; k++) { const d = k * Math.PI / 1800, t = T(d); if (t > Tm) { Tm = t; dmax = d; } }
+  let d = NaN, slip = false;
+  if (s.TL > Tm) slip = true;
+  else { let lo = 0, hi = dmax; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (T(m) < s.TL) lo = m; else hi = m; } d = (lo + hi) / 2; }
+  let Ia = NaN, phi = NaN, Q = NaN;
+  if (!slip) {
+    const X = cyl ? s.Xs : s.Xd;   // phasor diagram drawn with Xs (Xd for salient: approximate)
+    const Ere = s.Ef * Math.cos(-d), Eim = s.Ef * Math.sin(-d);
+    const dre = V - Ere, dim = -Eim;           // Vt − Ef = j X Ia  ->  Ia = (Vt − Ef)/(jX)
+    const Ire = dim / X, Iim = -dre / X;
+    Ia = Math.hypot(Ire, Iim); phi = Math.atan2(Iim, Ire);  // angle of Ia relative to Vt
+    Q = -3 * V * Ia * Math.sin(phi);                         // >0: absorbs reactive (lagging)
+  }
+  return { V, ns, ws, T, Tm, dmax, d, slip, Ia, phi, Q, cyl };
+}
+
+/* ------------------------------------------------------------ circuits - */
+function circuit() {
+  const host = $('ckt'); host.innerHTML = '';
+  const W = 520, H = 230;
+  const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'الدائرة المكافئة' }, host);
+  const w = d => sv('path', { class: 'w', d }, svg);
+  const txt = (x, y, t, cls = 'lbl', anchor = 'middle') => sv('text', { x, y, class: cls, 'text-anchor': anchor }, svg, t);
+  const res = (x, y, horiz = true) => { let d = horiz ? `M${x} ${y}` : `M${x} ${y}`; for (let k = 0; k < 6; k++) d += horiz ? ` l4 ${k % 2 ? 8 : -8} l4 ${k % 2 ? -8 : 8}` : ` l${k % 2 ? 8 : -8} 4 l${k % 2 ? -8 : 8} 4`; sv('path', { class: 'w', d }, svg); };
+  const coilH = (x, y, n = 4) => { let d = `M${x} ${y}`; for (let k = 0; k < n; k++) d += ' a6 6 0 0 1 12 0'; sv('path', { class: 'w', d }, svg); };
+  const coilV = (x, y, n = 4) => { let d = `M${x} ${y}`; for (let k = 0; k < n; k++) d += ' a6 6 0 0 1 0 12'; sv('path', { class: 'w', d }, svg); };
+  const motor = (x, y, lab) => { sv('circle', { cx: x, cy: y, r: 24, class: 'mot' }, svg); txt(x, y + 5, lab); };
+  const src = (x, y, ac) => { sv('circle', { cx: x, cy: y, r: 15, class: 'mot' }, svg); if (ac) w(`M${x - 8} ${y} q4 -8 8 0 q4 8 8 0`); else { w(`M${x} ${y - 7} l0 4 M${x - 4} ${y - 5} l8 0 M${x - 4} ${y + 5} l8 0`); } };
+  const live = (x, y, id, anchor = 'middle') => sv('text', { x, y, class: 'lbl m', id, 'text-anchor': anchor }, svg, '');
+  if (mode === 'sep') {
+    src(60, 115, false); txt(30, 120, 'Va', 'lbl', 'end');
+    w('M60 100 L60 40 L190 40'); res(190, 40); w('M238 40 L300 40 L300 91 M300 139 L300 190 L60 190 L60 130');
+    txt(214, 28, 'Ra'); motor(300, 115, 'Eb'); live(150, 30, 'l1');
+    src(420, 115, false); txt(448, 120, 'Vf', 'lbl', 'start'); w('M420 100 L420 50 L384 50'); coilV(372, 56); w('M372 50 L384 50 M372 104 L372 180 L420 180 L420 130');
+    txt(350, 82, 'If', 'lbl', 'end'); live(420, 215, 'l2');
+  } else if (mode === 'ser') {
+    src(60, 115, false); txt(30, 120, 'Va', 'lbl', 'end');
+    w('M60 100 L60 40 L120 40'); coilH(120, 40); w('M168 40 L200 40'); res(200, 40); w('M248 40 L320 40 L320 91 M320 139 L320 190 L60 190 L60 130');
+    txt(144, 26, 'Rf'); txt(224, 28, 'Ra'); motor(320, 115, 'Eb'); live(200, 80, 'l1');
+    txt(420, 110, 'Ia = If', 'lbl m');
+  } else if (mode === 'im') {
+    src(30, 120, true); txt(30, 160, 'V1');
+    w('M30 105 L30 40 L60 40'); w('M60 40 L80 40'); w('M80 40 L80 70'); res(76, 70, false); w('M80 118 L80 190');
+    txt(66, 100, 'Xc', 'lbl', 'end');
+    w('M80 40 L130 40'); res(130, 40); w('M178 40 L200 40'); coilH(200, 40); w('M248 40 L280 40'); coilH(280, 40); w('M328 40 L350 40'); res(350, 40); w('M398 40 L440 40 L440 80');
+    res(436, 80, false); w('M440 128 L440 190 L30 190 L30 135');
+    txt(154, 28, 'R1'); txt(224, 28, 'X1'); txt(304, 28, "X2′"); txt(374, 28, "R2′");
+    txt(452, 110, "R2′(1−s)/s", 'lbl m', 'start');
+    live(250, 80, 'l1'); live(250, 215, 'l2');
+  } else {
+    src(50, 115, true); txt(22, 120, 'Vt', 'lbl', 'end');
+    w('M50 100 L50 40 L120 40'); coilH(120, 40); w('M168 40 L210 40'); res(210, 40); w('M258 40 L300 40 L300 91 M300 139 L300 190 L50 190 L50 130');
+    txt(144, 26, 'Xs'); txt(234, 28, 'Ra'); motor(300, 115, 'Ef'); live(180, 80, 'l1');
+    const g = sv('g', { id: 'phasor' }, svg);
+  }
+  $('cktsub').textContent = MODES[mode].sub;
+}
+
+/* ------------------------------------------------------------ plotting -- */
+function axes(svg, X0, X1, Y0, Y1, xmin, xmax, ymin, ymax, xl, yl, xt, yt) {
+  const X = x => X0 + (x - xmin) / (xmax - xmin) * (X1 - X0), Y = y => Y1 - (y - ymin) / (ymax - ymin) * (Y1 - Y0);
+  for (const t of xt) { sv('line', { x1: X(t), x2: X(t), y1: Y0, y2: Y1, stroke: 'var(--grid)' }, svg); sv('text', { x: X(t), y: Y1 + 14, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--muted)' }, svg, t); }
+  for (const t of yt) { sv('line', { x1: X0, x2: X1, y1: Y(t), y2: Y(t), stroke: 'var(--grid)' }, svg); sv('text', { x: X0 - 5, y: Y(t) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--muted)' }, svg, t); }
+  sv('line', { x1: X0, x2: X1, y1: Y1, y2: Y1, stroke: 'var(--wire)', 'stroke-width': 1.4 }, svg);
+  sv('line', { x1: X0, x2: X0, y1: Y0, y2: Y1, stroke: 'var(--wire)', 'stroke-width': 1.4 }, svg);
+  sv('text', { x: X1, y: Y1 + 30, 'text-anchor': 'end', 'font-size': 12, fill: 'var(--fg)' }, svg, xl);
+  sv('text', { x: X0, y: Y0 - 8, 'text-anchor': 'start', 'font-size': 12, fill: 'var(--fg)' }, svg, yl);
+  return { X, Y };
+}
+const ticks = (max, n = 5) => { const raw = max / n, p = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 5, 10].map(k => k * p).find(k => k >= raw); const out = []; let t = 0; while (true) { out.push(+t.toFixed(6)); if (t >= max - 1e-9) break; t += st; } return out; };
+function line(svg, pts, attrs) { sv('path', { d: pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' '), fill: 'none', ...attrs }, svg); }
+function plot() {
+  const host = $('plot'); host.innerHTML = '';
+  const W = 520, H = 330, svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'منحنى الخواص' }, host);
+  const X0 = 56, X1 = W - 14, Y0 = 26, Y1 = H - 44;
+  let leg = '';
+  if (mode === 'sep' || mode === 'ser') {
+    const curve = mode === 'sep' ? sepCurve : serCurve;
+    const Tmax = Math.max(50, S.TL * 2, 120), xt = ticks(Tmax, 5);
+    const nTop = mode === 'sep' ? Math.max(curve(S, S.Va)(0), R.n) * 1.08 : Math.max(R.n * 2.2, 2 * S.nr);
+    const yt = ticks(Math.max(500, nTop), 5), yTop = yt.slice(-1)[0];
+    const { X, Y } = axes(svg, X0, X1, Y0, Y1, 0, xt.slice(-1)[0], 0, yTop, 'العزم T (N·m)', 'السرعة n (rpm)', xt, yt);
+    const clipY = v => Math.max(Y0, Math.min(Y1, Y(v)));
+    const fam = [1, 0.75, 0.5, 0.25].map(k => S.Va * k);
+    fam.forEach((Va, j) => {
+      const f = curve(S, Va), pts = [];
+      for (let k = 0; k <= 200; k++) { const T = Math.max(mode === 'ser' ? 0.2 : 0, k / 200 * xt.slice(-1)[0]); const n = f(T); if (n >= 0) pts.push([X(T), clipY(n)]); }
+      line(svg, pts, { stroke: j ? 'var(--muted)' : 'var(--teal)', 'stroke-width': j ? 1.2 : 2.6, opacity: j ? .7 : 1 });
+      const lab = pts[Math.floor(pts.length * 0.82)] || pts[pts.length - 1]; if (lab) sv('text', { x: lab[0], y: lab[1] - 6, 'font-size': 11, fill: j ? 'var(--muted)' : 'var(--teal)', 'text-anchor': 'middle' }, svg, (j ? '' : 'Va = ') + Va.toFixed(0) + ' V');
+    });
+    if (mode === 'ser') { sv('line', { x1: X0, x2: X1, y1: clipY(S.nr), y2: clipY(S.nr), stroke: 'var(--bad)', 'stroke-dasharray': '5 4' }, svg); sv('text', { x: X1, y: clipY(S.nr) - 5, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--bad)' }, svg, 'السرعة المقننة'); }
+    sv('line', { x1: X(S.TL), x2: X(S.TL), y1: Y0, y2: Y1, stroke: 'var(--blue)', 'stroke-dasharray': '6 4', 'stroke-width': 1.5 }, svg);
+    sv('text', { x: X(S.TL) + 4, y: Y0 + 12, 'font-size': 11, fill: 'var(--blue)' }, svg, 'عزم الحمل');
+    if (!R.stall) sv('circle', { cx: X(S.TL), cy: clipY(R.n), r: 6, fill: 'var(--mark)', stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
+    leg = '<span><i style="background:var(--teal)"></i>الجهد الحالي</span><span><i style="background:var(--muted)"></i>75% و50% و25% من الجهد</span><span><i style="background:var(--blue)"></i>عزم الحمل</span><span><i style="background:var(--mark)"></i>نقطة التشغيل</span>';
+  } else if (mode === 'im') {
+    const pts = [], pts2 = []; let tmax = 0;
+    for (let k = 1; k <= 400; k++) { const sl = k / 400; const a = imAt(S, sl); pts.push([sl, a.Td]); tmax = Math.max(tmax, a.Td); }
+    const yt = ticks(tmax * 1.1, 5), xt = [0, 0.2, 0.4, 0.6, 0.8, 1];
+    const { X, Y } = axes(svg, X0, X1, Y0, Y1, 0, 1, 0, yt.slice(-1)[0], 'الانزلاق s', 'العزم T (N·m)', xt, yt);
+    line(svg, pts.map(p => [X(p[0]), Y(p[1])]), { stroke: 'var(--teal)', 'stroke-width': 2.6 });
+    sv('rect', { x: X(0), y: Y0, width: X(R.sm) - X(0), height: Y1 - Y0, fill: 'var(--teal)', opacity: .07 }, svg);
+    sv('text', { x: (X(0) + X(R.sm)) / 2, y: Y1 - 8, 'text-anchor': 'middle', 'font-size': 10.5, fill: 'var(--teal)' }, svg, 'مستقرة');
+    sv('line', { x1: X(R.sm), x2: X(R.sm), y1: Y(R.Tm), y2: Y1, stroke: 'var(--muted)', 'stroke-dasharray': '3 3' }, svg);
+    sv('text', { x: X(R.sm) + 5, y: Y(R.Tm) - 6, 'font-size': 11, fill: 'var(--fg)' }, svg, `Tm = ${fmt(R.Tm, 0)}  (sm = ${fmt(R.sm, 3)})`);
+    sv('text', { x: X(1) - 2, y: Y(R.Tst) - 8, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--fg)' }, svg, `Tst = ${fmt(R.Tst, 0)}`);
+    const TL = R.stall ? S.TL : R.Td;
+    sv('line', { x1: X0, x2: X1, y1: Y(TL), y2: Y(TL), stroke: 'var(--blue)', 'stroke-dasharray': '6 4', 'stroke-width': 1.5 }, svg);
+    sv('text', { x: X1, y: Y(TL) - 5, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--blue)' }, svg, 'العزم اللازم: الحمل + الاحتكاك');
+    if (!R.stall) sv('circle', { cx: X(R.s), cy: Y(R.Td), r: 6, fill: 'var(--mark)', stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
+    leg = '<span><i style="background:var(--teal)"></i>العزم المتولد</span><span><i style="background:var(--blue)"></i>العزم اللازم</span><span><i style="background:var(--mark)"></i>نقطة التشغيل</span>';
+  } else {
+    const yt = ticks(R.Tm * 1.15, 5), xt = [0, 30, 60, 90, 120, 150, 180];
+    const { X, Y } = axes(svg, X0, X1, Y0, Y1, 0, 180, 0, yt.slice(-1)[0], 'زاوية القدرة δ (°)', 'العزم T (N·m)', xt, yt);
+    const pts = []; for (let k = 0; k <= 180; k++) pts.push([X(k), Y(Math.max(0, R.T(k * Math.PI / 180)))]);
+    line(svg, pts, { stroke: 'var(--teal)', 'stroke-width': 2.6 });
+    if (!R.cyl) {
+      const p1 = [], p2 = []; for (let k = 0; k <= 180; k++) { const d = k * Math.PI / 180; p1.push([X(k), Y(3 * R.V * S.Ef * Math.sin(d) / (R.ws * S.Xd))]); const tr = 3 * R.V * R.V / (2 * R.ws) * (S.Xd - S.Xq) / (S.Xd * S.Xq) * Math.sin(2 * d); p2.push([X(k), Y(Math.max(0, tr))]); }
+      line(svg, p1, { stroke: 'var(--muted)', 'stroke-width': 1.2, 'stroke-dasharray': '4 3' }); line(svg, p2, { stroke: 'var(--muted)', 'stroke-width': 1.2, 'stroke-dasharray': '1 3' });
+    }
+    sv('line', { x1: X0, x2: X1, y1: Y(S.TL), y2: Y(S.TL), stroke: 'var(--blue)', 'stroke-dasharray': '6 4', 'stroke-width': 1.5 }, svg);
+    sv('text', { x: X(R.dmax * 180 / Math.PI), y: Y(R.Tm) - 7, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--fg)' }, svg, `أقصى عزم ${fmt(R.Tm, 0)}`);
+    if (!R.slip) sv('circle', { cx: X(R.d * 180 / Math.PI), cy: Y(S.TL), r: 6, fill: 'var(--mark)', stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
+    leg = '<span><i style="background:var(--teal)"></i>العزم المتولد</span>' + (R.cyl ? '' : '<span><i style="background:var(--muted)"></i>حد المجال وحد الممانعة (sin 2δ)</span>') + '<span><i style="background:var(--blue)"></i>عزم الحمل</span><span><i style="background:var(--mark)"></i>نقطة التشغيل</span>';
+  }
+  $('legend').innerHTML = leg; $('plotsub').textContent = MODES[mode].psub;
+}
+function phasor() {
+  const svg = $('ckt').querySelector('svg'); const old = svg.querySelector('#ph'); if (old) old.remove();
+  if (mode !== 'syn' || R.slip) return;
+  const g = sv('g', { id: 'ph' }, svg), ox = 345, oy = 110, k = 150 / Math.max(R.V, S.Ef);
+  const ar = (x1, y1, x2, y2, c, lab) => { sv('line', { x1, y1, x2, y2, stroke: c, 'stroke-width': 2.2 }, g); const a = Math.atan2(y2 - y1, x2 - x1); sv('path', { d: `M${x2} ${y2} l${-9 * Math.cos(a - .4)} ${-9 * Math.sin(a - .4)} M${x2} ${y2} l${-9 * Math.cos(a + .4)} ${-9 * Math.sin(a + .4)}`, stroke: c, 'stroke-width': 2.2, fill: 'none' }, g); sv('text', { x: x2 + 4, y: y2 - 4, 'font-size': 12, fill: c, 'font-weight': 600 }, g, lab); };
+  const vx = ox + R.V * k, ex = ox + S.Ef * k * Math.cos(R.d), ey = oy + S.Ef * k * Math.sin(R.d);
+  ar(ox, oy, vx, oy, 'var(--fg)', 'Vt'); ar(ox, oy, ex, ey, 'var(--teal)', ''); sv('text', { x: ex - 30, y: ey + 16, 'font-size': 12, fill: 'var(--teal)', 'font-weight': 600 }, g, 'Ef'); ar(ex, ey, vx, oy, 'var(--blue)', ''); sv('text', { x: (ex + vx) / 2 + 6, y: (ey + oy) / 2 + 4, 'font-size': 12, fill: 'var(--blue)', 'font-weight': 600 }, g, 'jXs·Ia');
+  const ik = 60 / Math.max(1, R.Ia); ar(ox, oy, ox + R.Ia * ik * Math.cos(R.phi), oy - R.Ia * ik * Math.sin(R.phi), 'var(--mark)', 'Ia');
+}
+
+/* ------------------------------------------------------------ update ---- */
+function compute() { R = mode === 'sep' ? compSep(S) : mode === 'ser' ? compSer(S) : mode === 'im' ? compIm(S) : synCalc(S); }
+function kpis() {
+  let K = [], st = '', cls = 'status';
+  if (mode === 'sep') {
+    K = [['If (A)', fmt(R.If, 3)], ['Ia (A)', fmt(R.Ia, 2)], ['Eb (V)', fmt(R.Eb, 2)], ['ω (rad/s)', fmt(R.w, 2)], ['n (rpm)', fmt(R.n, 1)], ['الكفاءة', fmt(R.Pout / R.Pin * 100, 1) + '%']];
+    st = R.stall ? 'المحرك لا يدور: الجهد لا يكفي لتمرير التيار اللازم لعزم الحمل.' : `n = (Va − Ia·Ra)/(Kv·If): الحمل يحدد التيار Ia = TL/(Kv·If) = ${fmt(R.Ia, 2)} A، والجهد يحدد السرعة.`;
+    if (R.stall) cls += ' warn';
+    $('l1').textContent = `Ia = ${fmt(R.Ia, 1)} A`; $('l2').textContent = `If = ${fmt(R.If, 3)} A`;
+  } else if (mode === 'ser') {
+    K = [['Ia = If (A)', fmt(R.Ia, 2)], ['Eb (V)', fmt(R.Eb, 2)], ['ω (rad/s)', fmt(R.w, 2)], ['n (rpm)', fmt(R.n, 0)], ['Td (N·m)', fmt(S.TL, 1)], ['الكفاءة', fmt(R.Pout / R.Pin * 100, 1) + '%']];
+    st = R.over ? `تحذير: السرعة ${fmt(R.n, 0)} rpm أعلى من السرعة المقننة ${S.nr} rpm. الحمل الخفيف يقلل التيار فيضعف المجال وترتفع السرعة؛ لذلك يُحمَّل محرك التوالي قبل تشغيله.` : (R.stall ? 'المحرك لا يدور عند هذا الجهد والحمل.' : `Td = Kt·Ia²: تيار ${fmt(R.Ia, 1)} A يكفي لعزم ${fmt(S.TL, 0)} N·m.`);
+    if (R.over) cls += ' bad'; else if (R.stall) cls += ' warn';
+    $('l1').textContent = `Ia = If = ${fmt(R.Ia, 1)} A`;
+  } else if (mode === 'im') {
+    K = [['الانزلاق s', fmt(R.s, 4)], ['n (rpm)', fmt(R.n, 0)], ['I1 (A)', fmt(R.I1, 2)], ['معامل القدرة', fmt(R.pf, 3) + ' متأخر'], ['Td (N·m)', fmt(R.Td, 2)], ['T عند العمود (N·m)', fmt(R.Tsh, 2)]];
+    st = R.stall ? 'الحمل أكبر من أقصى عزم يستطيعه المحرك: يتباطأ حتى يتوقف (المنطقة غير المستقرة).' : `ns = 120f/P = ${fmt(R.ns, 0)} rpm. يعمل المحرك في المنطقة المستقرة (s < sm).`;
+    if (R.stall) cls += ' bad';
+    $('l1').textContent = `I2′ = ${fmt(R.I2, 2)} A`; $('l2').textContent = `I1 = ${fmt(R.I1, 2)} A ، s = ${fmt(R.s, 4)}`;
+    pflow();
+  } else {
+    const lead = R.Q < 0;
+    K = [['n = ns (rpm)', fmt(R.ns, 0)], ['δ (°)', R.slip ? '—' : fmt(R.d * 180 / Math.PI, 1)], ['Ia (A)', fmt(R.Ia, 2)], ['معامل القدرة', R.slip ? '—' : fmt(Math.abs(Math.cos(R.phi)), 3) + (lead ? ' متقدم' : ' متأخر')], ['أقصى عزم (N·m)', fmt(R.Tm, 0)], ['Q (kVAr)', fmt(R.Q / 1000, 2)]];
+    st = R.slip ? 'الحمل أكبر من أقصى عزم: يفقد المحرك التزامن (يخرج من الخطوة).' : (lead ? 'المحرك فوق الإثارة: يعطي قدرة غير فعالة للشبكة (معامل قدرة متقدم).' : 'المحرك تحت الإثارة: يسحب قدرة غير فعالة (معامل قدرة متأخر). زد تيار المجال لتحسينه.');
+    if (R.slip) cls += ' bad';
+    $('l1').textContent = `Ia = ${fmt(R.Ia, 1)} A`;
+    phasor();
+  }
+  $('kpi').innerHTML = K.map(([a, b]) => `<div><b>${b}</b><span>${a}</span></div>`).join('');
+  const s2 = $('status'); s2.className = cls; s2.textContent = st;
+  const n = mode === 'syn' ? (R.slip ? 0 : R.ns) : (R.stall ? 0 : R.n);
+  $('rotTxt').textContent = `يدور العضو الدوار بسرعة ${fmt(n, 0)} rpm (الحركة هنا مبطأة بنسبة ثابتة للمقارنة بين الحالات).`;
+}
+function pflow() {
+  const rows = [['القدرة الداخلة الكلية', R.Ptot, 0], ['المفاقيد الحديدية Pc', R.Pc, 1], ['المفاقيد النحاسية للثابت Pst', R.Pst, 1], ['القدرة في الثغرة Pg', R.Pg, 0], ['المفاقيد النحاسية للدائر Pcu2', R.Pcu2, 1], ['القدرة الميكانيكية Pm', R.Pm, 0], ['مفاقيد الاحتكاك Pf', S.Pf, 1], ['القدرة عند العمود Psh', R.Psh, 0]];
+  const mx = Math.max(...rows.map(r => r[1]));
+  $('pf').innerHTML = rows.map(([a, v, l]) => `<div class="r"><span>${bidi(a)}</span><div><div class="bar${l ? ' loss' : ''}" style="width:${Math.max(1, v / mx * 100)}%"></div></div><b>${fmt(v, 0)} W</b></div>`).join('') + `<div class="r"><span>الكفاءة</span><div></div><b>${fmt(R.eff * 100, 1)}%</b></div>`;
+}
+function update() { compute(); plot(); kpis(); checkTasks(); }
+let ang = 0, last = 0;
+function loop(t) {
+  const dt = last ? (t - last) / 1000 : 0; last = t;
+  const n = mode === 'syn' ? (R.slip ? 0 : R.ns) : (R.stall ? 0 : R.n || 0);
+  if (!reduce) { ang = (ang + dt * 360 * n / 3000) % 360; $('rotor').setAttribute('transform', `rotate(${ang})`); }
+  requestAnimationFrame(loop);
+}
+
+/* ------------------------------------------------------------ controls -- */
+function buildControls() {
+  const sl = $('sliders'); sl.innerHTML = '';
+  for (let [k, lab, mn, mx, st, u] of SLIDERS[mode]) {
+    if (mode === 'im' && k === 'n') { const ns = 120 * S.f / S.P; mn = Math.round(0.8 * ns); mx = ns - 1; }
+    if (mode === 'im' && ((k === 'n' && S.by !== 'n') || (k === 'TL' && S.by === 'n'))) continue;
+    const d = document.createElement('div'); d.className = 'sl';
+    d.innerHTML = `<label for="s-${k}">${bidi(lab)}</label><input type="range" id="s-${k}" min="${mn}" max="${mx}" step="${st}" value="${S[k]}"><output id="o-${k}"></output>`;
+    sl.appendChild(d);
+    const inp = d.querySelector('input'), out = d.querySelector('output');
+    const show = () => out.textContent = `${(+S[k]).toFixed(st < 0.01 ? 3 : st < 1 ? 2 : 0)} ${u}`;
+    show();
+    inp.addEventListener('input', () => { S[k] = parseFloat(inp.value); show(); const f = $('i-' + k); if (f) f.value = S[k]; update(); });
+  }
+  const ex = $('extra'); ex.innerHTML = '';
+  if (mode === 'im') {
+    ex.innerHTML = `<div class="row"><span class="note">حدد نقطة التشغيل بـ:</span><div class="seg" id="by"><button type="button" data-v="TL" aria-pressed="${S.by === 'TL'}">عزم الحمل</button><button type="button" data-v="n" aria-pressed="${S.by === 'n'}">سرعة المحرك</button></div></div>`;
+    $('by').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.v === 'TL' && S.by === 'n') S.TL = +R.Tsh.toFixed(1); if (b.dataset.v === 'n' && S.by === 'TL') S.n = Math.round(R.n); S.by = b.dataset.v; buildControls(); update(); };
+  }
+  if (mode === 'syn') {
+    ex.innerHTML = `<div class="row"><span class="note">نوع العضو الدوار:</span><div class="seg" id="rot"><button type="button" data-v="cyl" aria-pressed="${S.rotor === 'cyl'}">أسطواني</button><button type="button" data-v="sal" aria-pressed="${S.rotor === 'sal'}">أقطاب بارزة</button></div></div>`;
+    $('rot').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.rotor = b.dataset.v; buildControls(); update(); };
+  }
+  const ip = $('inputs'); ip.innerHTML = '';
+  for (const [k, lab] of INPUTS[mode]) {
+    const l = document.createElement('label'); l.innerHTML = `${bidi(lab)}<input id="i-${k}" type="number" inputmode="decimal" step="any" value="${S[k]}">`;
+    ip.appendChild(l);
+    l.querySelector('input').addEventListener('change', e => { const v = parseFloat(e.target.value); if (isFinite(v) && v > 0) { S[k] = v; buildControls(); update(); } });
+  }
+  $('ex').innerHTML = ''; EXAMPLES[mode].forEach(([lab, v]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = lab; b.onclick = () => { S = { ...v }; buildControls(); update(); }; $('ex').appendChild(b); });
+  $('dnote').textContent = mode === 'syn' ? 'بيانات المحرك التزامني افتراضية للتوضيح؛ الحقيبة لا تتضمن مثالاً عددياً له.' : (mode === 'im' ? 'الحساب بالدائرة التقريبية مع فرع مغنطة حثي خالص Xc، والمفاقيد الحديدية والاحتكاك ثابتة كما في المثال (1-3).' : 'أهملت مفاقيد اللاحمل والاحتكاك كما في أمثلة الحقيبة، فالعزم المتولد يساوي عزم الحمل.');
+}
+
+/* ------------------------------------------------------------ tasks ----- */
+const near = (a, b, p) => Math.abs(a - b) <= Math.abs(b) * p;
+const TASKS = {
+  sep: [
+    { obj: '1-4', q: 'إذا ضاعفت عزم الحمل والجهدان ثابتان، كيف تتغير السرعة؟', o: ['تزيد', 'تقل قليلاً', 'تقل إلى النصف', 'لا تتغير'], a: 1,
+      act: 'اضبط بيانات المثال (1-1)، ثم ارفع عزم الحمل إلى 200 N·m.', chk: () => S.TL >= 195 && near(S.Va, 440, .01) && near(S.Vf, 440, .01),
+      ex: () => `السرعة ${fmt(R.n, 0)} rpm بدلاً من 2440 rpm، أي انخفاض بنحو ${fmt((1 - R.n / 2440) * 100, 1)}% فقط: التيار تضاعف، لكن هبوط الجهد Ia·Ra صغير مقارنة بالجهد.` },
+    { obj: '1-4', q: 'عند العزم نفسه، إذا خفضت جهد المنتج إلى نصف قيمته، كم تصبح السرعة تقريباً؟', o: ['كما هي', 'نصفها تقريباً', 'ربعها', 'ضعفها'], a: 1,
+      act: 'بيانات المثال (1-1)، ثم اجعل Va = 220 V.', chk: () => S.Va >= 210 && S.Va <= 230 && near(S.Vf, 440, .01),
+      ex: () => `n = ${fmt(R.n, 0)} rpm، أي ${fmt(R.n / 2440 * 100, 0)}% من 2440: السرعة تتبع جهد المنتج تقريباً. هذا أساس التحكم بجهد المنتج في الوحدة الثالثة.` },
+    { obj: '1-3', q: 'في المثال (1-1): احسب سرعة المحرك (rpm) عند عزم الحمل 100 N·m، ثم أدخلها.', num: 2440.2, tol: 0.01, unit: 'rpm', after: () => { S = { ...DEF.sep }; buildControls(); update(); },
+      ex: () => `صحيح. Ia = ${fmt(R.Ia, 2)} A، Eb = ${fmt(R.Eb, 2)} V، ω = ${fmt(R.w, 2)} rad/s.`, hint: 'احسب If = Vf/Rf، ثم Ia = TL/(Kv·If)، ثم Eb = Va − Ia·Ra، ثم ω = Eb/(Kv·If).' },
+    { obj: '1-4', q: 'إذا خفضت جهد المجال (فقل تيار المجال) وجهد المنتج ثابت، ماذا يحدث؟', o: ['تزيد السرعة ويزيد تيار المنتج', 'تقل السرعة ويقل تيار المنتج', 'تزيد السرعة ويقل تيار المنتج'], a: 0,
+      act: 'بيانات المثال (1-1)، ثم اجعل Vf = 330 V.', chk: () => S.Vf <= 335 && near(S.Va, 440, .01),
+      ex: () => `If = ${fmt(R.If, 3)} A، Ia = ${fmt(R.Ia, 1)} A، n = ${fmt(R.n, 0)} rpm. إضعاف المجال يرفع السرعة، ويحتاج تياراً أكبر للعزم نفسه لأن Td = Kt·If·Ia.` }
+  ],
+  ser: [
+    { obj: '1-6', q: 'إذا قل عزم الحمل إلى ربع قيمته والجهد ثابت، كيف تتغير سرعة محرك التوالي؟', o: ['تقل', 'تزيد قليلاً', 'تتضاعف تقريباً', 'لا تتغير'], a: 2,
+      act: 'بيانات المثال (1-2)، ثم اجعل عزم الحمل 15 N·m.', chk: () => S.TL <= 15.5 && near(S.Va, 149.43, .01),
+      ex: () => `n = ${fmt(R.n, 0)} rpm بدلاً من 1000 rpm، وتجاوزت السرعة المقننة. التيار نصف قيمته، فالمجال نصف قيمته، فترتفع السرعة بشدة.` },
+    { obj: '1-6', q: 'إذا تضاعف تيار محرك التوالي، كم يصبح العزم المتولد؟', o: ['ضعفه', 'أربعة أضعافه', 'نصفه', 'كما هو'], a: 1,
+      ex: () => 'Td = Kt·Ia²، فمضاعفة التيار تضاعف العزم أربع مرات. لذلك عزم بدء محرك التوالي عالٍ جداً، ويستخدم في الجر الكهربائي.' },
+    { obj: '1-5', q: 'في المثال (1-2): احسب جهد المنتج (V) عند 1000 rpm و60 N·m، ثم أدخله.', num: 149.43, tol: 0.01, unit: 'V', after: () => { S = { ...DEF.ser }; buildControls(); update(); },
+      ex: () => `صحيح. Ia = ${fmt(R.Ia, 2)} A، Eb = ${fmt(R.Eb, 2)} V.`, hint: 'Ia = √(Td/Kv) بقيمة Kv = 0.032 (التصحيح أ-1)، ثم Eb = Kv·Ia·ω، ثم Va = Eb + (Ra + Rf)·Ia.' }
+  ],
+  im: [
+    { obj: '1-8', q: 'إذا زاد عزم الحمل قليلاً، ماذا يحدث للانزلاق؟', o: ['يزيد', 'يقل', 'لا يتغير'], a: 0,
+      act: 'اختر «عزم الحمل» لتحديد نقطة التشغيل، ثم ارفع عزم الحمل إلى 100 N·m.', chk: () => S.by === 'TL' && S.TL >= 99 && !R.stall,
+      ex: () => `s = ${fmt(R.s, 4)} و n = ${fmt(R.n, 0)} rpm. في المنطقة المستقرة يزيد العزم المتولد بزيادة الانزلاق حتى يساوي عزم الحمل.` },
+    { obj: '1-8', q: 'إذا انخفض جهد المصدر إلى 80%، كم يصبح أقصى عزم تقريباً؟', o: ['80%', '64%', '50%', 'لا يتغير'], a: 1,
+      act: 'اضبط بيانات المثال (1-3)، ثم اجعل VL = 368 V.', chk: () => S.VL >= 362 && S.VL <= 374,
+      ex: () => `أقصى عزم ${fmt(R.Tm, 0)} N·m. العزم يتناسب مع مربع الجهد: 0.8² = 0.64.` },
+    { obj: '1-7', q: 'في المثال (1-3): احسب العزم المتولد Td (N·m) بالدائرة التقريبية، ثم أدخله.', num: 83.1, tol: 0.015, unit: 'N·m', after: () => { S = { ...DEF.im }; buildControls(); update(); },
+      wrong: v => Math.abs(v - 80) < 0.8 ? 'هذه قيمة الأصل (80 N·m) المحسوبة بطرح المفاقيد بطريقة غير متسقة مع الدائرة التقريبية. احسب Pg = 3·I2′²·R2′/s مباشرة (التصحيح أ-5).' : null,
+      ex: () => `صحيح. Pg = ${fmt(R.Pg, 0)} W، Td = Pg/ωs = ${fmt(R.Td, 2)} N·m.`, hint: 'I2′ = Vph/|Z|، ثم Pg = 3·I2′²·R2′/s، ثم Td = Pg/ωs.' },
+    { obj: '1-8', q: 'إذا ضاعفت مقاومة العضو الدائر R2′، ماذا يحدث لأقصى عزم ولعزم البدء؟', o: ['يقل أقصى العزم', 'يبقى أقصى العزم تقريباً ويزيد عزم البدء', 'يزيدان معاً بالنسبة نفسها'], a: 1,
+      act: 'بيانات المثال (1-3)، ثم اجعل R2′ = 0.666 Ω وقارن Tm وTst.', chk: () => S.R2 >= 0.64 && S.R2 <= 0.7,
+      ex: () => `Tm = ${fmt(R.Tm, 0)} N·m عند sm = ${fmt(R.sm, 3)}، وTst = ${fmt(R.Tst, 0)} N·m. أقصى العزم لا يعتمد على R2′ وينتقل إلى انزلاق أكبر، وهذا أساس التحكم بمقاومة العضو الدائر في الوحدة الخامسة.` }
+  ],
+  syn: [
+    { obj: '1-9', q: 'إذا زاد عزم الحمل على المحرك التزامني، ماذا يحدث؟', o: ['تقل السرعة وتبقى δ ثابتة', 'تبقى السرعة ثابتة وتزيد δ', 'تزيد السرعة وδ'], a: 1,
+      act: 'ارفع عزم الحمل إلى 250 N·m.', chk: () => S.TL >= 245 && !R.slip,
+      ex: () => `δ = ${fmt(R.d * 180 / Math.PI, 1)}° والسرعة ${fmt(R.ns, 0)} rpm كما هي. إذا تجاوز الحمل أقصى عزم (${fmt(R.Tm, 0)} N·m) يفقد المحرك التزامن.` },
+    { obj: '1-9', q: 'عند الحمل نفسه، إذا زدت تيار المجال (فزاد Ef)، كيف يتغير معامل القدرة؟', o: ['يصبح متقدماً', 'يصبح متأخراً', 'لا يتغير'], a: 0,
+      act: 'ارفع Ef حتى يتحول معامل القدرة إلى متقدم.', chk: () => !R.slip && R.Q < 0,
+      ex: () => `Ef = ${S.Ef} V، معامل القدرة ${fmt(Math.abs(Math.cos(R.phi)), 3)} متقدم: المحرك فوق الإثارة يعطي قدرة غير فعالة. هذه ميزة المحرك التزامني في تحسين معامل قدرة المصنع.` },
+    { obj: '1-9', q: 'في المحرك ذي الأقطاب البارزة، عند أي زاوية يكون حد العزم الممانعي أقصى ما يمكن؟', o: ['45°', '90°', '180°'], a: 0,
+      ex: () => 'حد الممانعة يتناسب مع sin 2δ فيبلغ أقصاه عند 45°؛ لذلك يقع أقصى عزم كلي للأقطاب البارزة قبل 90°. اختر «أقطاب بارزة» وانظر المنحنيين المنقطين.' }
+  ]
+};
+const taskState = {};
+function buildTasks() {
+  const host = $('tasks'); host.innerHTML = '';
+  TASKS[mode].forEach((t, j) => {
+    const key = mode + j, ts = taskState[key] || (taskState[key] = {});
+    const el = document.createElement('div'); el.className = 'task'; el.dataset.key = key;
+    el.innerHTML = `<h3><b>${t.obj}</b>المهمة ${j + 1}<span class="ok" hidden>✓ تحقّقت</span></h3><p>${bidi(t.q)}</p>`;
+    if (t.num != null) {
+      const box = document.createElement('div'); box.className = 'numin';
+      box.innerHTML = `<input type="number" inputmode="decimal" step="any" aria-label="إجابتك"><span>${t.unit}</span><button class="btn sm" type="button">تحقّق</button>`;
+      const fb = document.createElement('p'); fb.className = 'fb';
+      box.querySelector('button').onclick = () => {
+        const v = parseFloat(box.querySelector('input').value);
+        if (!isFinite(v)) { fb.className = 'fb bad'; fb.textContent = 'أدخل رقماً.'; return; }
+        if (Math.abs(v - t.num) <= Math.abs(t.num) * t.tol) { t.after(); ts.done = true; fb.className = 'fb ok'; fb.innerHTML = bidi(t.ex()); mark(el); }
+        else { fb.className = 'fb bad'; fb.innerHTML = bidi((t.wrong && t.wrong(v)) || ('ليست صحيحة بعد. ' + t.hint)); }
+      };
+      el.append(box, fb);
+    } else {
+      const opts = document.createElement('div'); opts.className = 'opts';
+      const fb = document.createElement('p'); fb.className = 'fb';
+      const act = document.createElement('div'); act.className = 'act'; act.hidden = true;
+      t.o.forEach((o, k) => {
+        const b = document.createElement('button'); b.type = 'button'; b.innerHTML = bidi(o);
+        b.onclick = () => {
+          opts.querySelectorAll('button').forEach(x => x.classList.remove('right', 'wrong'));
+          b.classList.add(k === t.a ? 'right' : 'wrong');
+          fb.className = 'fb ' + (k === t.a ? 'ok' : 'bad');
+          fb.textContent = k === t.a ? 'توقعك صحيح. نفّذ الآن لتتأكد بنفسك.' : 'سجّل توقعك، ونفّذ الآن لترى ما يحدث فعلاً.';
+          act.hidden = false;
+          if (!t.chk) { ts.done = true; act.innerHTML = `<p>${bidi(t.ex())}</p>`; mark(el); }
+        };
+        opts.appendChild(b);
+      });
+      if (t.chk) act.innerHTML = `<p><b>نفّذ:</b> ${bidi(t.act)}</p><p class="res note">ستظهر النتيجة هنا عندما تنفّذ المطلوب.</p>`;
+      el.append(opts, fb, act); el._t = t; el._act = act;
+    }
+    host.appendChild(el); if (ts.done) mark(el);
+  });
+}
+function mark(el) { el.classList.add('done'); el.querySelector('.ok').hidden = false; }
+function checkTasks() {
+  document.querySelectorAll('#tasks .task').forEach(el => {
+    const t = el._t; if (!t || !t.chk || el._act.hidden) return;
+    if (t.chk()) { taskState[el.dataset.key].done = true; const r = el._act.querySelector('.res'); r.innerHTML = bidi(t.ex()); r.className = 'res fb ok'; mark(el); }
+  });
+}
+
+/* ------------------------------------------------------------ quiz ------ */
+const QUIZ = [
+  { obj: '1-4', q: 'محرك تغذية منفصلة: زاد عزم الحمل والجهد ثابت. ماذا يحدث لتيار المنتج؟', o: ['يقل', 'يزيد بالنسبة نفسها', 'لا يتغير'], a: 1, e: 'Ia = TL/(Kv·If): التيار يتناسب طردياً مع العزم عند ثبات المجال.' },
+  { obj: '1-6', q: 'لماذا يجب تحميل محرك التوالي قبل تشغيله؟', o: ['لأن عزم بدئه ضعيف', 'لأن سرعته ترتفع إلى قيمة خطرة دون حمل', 'لأن تيار المجال يصبح كبيراً'], a: 1, e: 'دون حمل يقل التيار فيضعف المجال فترتفع السرعة دون حد تقريباً.' },
+  { obj: '1-7', q: 'محرك حثي: Pg = 10 kW والانزلاق 0.04. كم المفاقيد النحاسية في العضو الدائر؟', o: ['40 W', '400 W', '9600 W'], a: 1, e: 'Pcu2 = s·Pg = 0.04 × 10000 = 400 W، والقدرة الميكانيكية 9600 W.' },
+  { obj: '1-8', q: 'أين يعمل المحرك الحثي بثبات على منحنى العزم والانزلاق؟', o: ['بين s = 1 وs = sm', 'بين s = sm وs = 0', 'عند أقصى عزم فقط'], a: 1, e: 'في هذه المنطقة يزيد العزم بزيادة الانزلاق، فيستعيد المحرك توازنه بعد أي تغير في الحمل.' },
+  { obj: '1-9', q: 'سرعة محرك تزامني رباعي الأقطاب على 60 Hz عند زيادة الحمل:', o: ['تقل قليلاً', 'تبقى 1800 rpm', 'تزيد'], a: 1, e: 'n = 120f/P = 1800 rpm مهما تغير الحمل ما دام لم يتجاوز أقصى عزم.' },
+  { obj: '1-10', q: 'العزم سالب والسرعة موجبة. في أي ربع يعمل المحرك؟', o: ['الأول: تدوير أمامي', 'الثاني: فرملة أمامية', 'الرابع: فرملة عكسية'], a: 1, e: 'العزم يعاكس اتجاه الدوران الأمامي فتعمل الآلة مولداً: الربع الثاني.' }
+];
+const quizAns = {};
+function buildQuiz() {
+  const host = $('quiz'); host.innerHTML = '';
+  QUIZ.forEach((t, j) => {
+    const el = document.createElement('div'); el.className = 'task';
+    el.innerHTML = `<h3><b>${t.obj}</b>السؤال ${j + 1}</h3><p>${bidi(t.q)}</p>`;
+    const opts = document.createElement('div'); opts.className = 'opts'; const fb = document.createElement('p'); fb.className = 'fb';
+    t.o.forEach((o, k) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = bidi(o); b.onclick = () => {
+      if (quizAns[j] != null) return; quizAns[j] = k === t.a;
+      b.classList.add(k === t.a ? 'right' : 'wrong'); if (k !== t.a) opts.children[t.a].classList.add('right');
+      fb.className = 'fb ' + (k === t.a ? 'ok' : 'bad'); fb.innerHTML = bidi((k === t.a ? 'صحيح. ' : 'غير صحيح. ') + t.e); score(); };
+      opts.appendChild(b); });
+    el.append(opts, fb); host.appendChild(el);
+  });
+}
+function score() { const n = Object.keys(quizAns).length, c = Object.values(quizAns).filter(Boolean).length; $('score').textContent = n ? `النتيجة: ${c} من ${n}` + (n === QUIZ.length ? (c >= 5 ? ' — أتقنت أهداف الوحدة.' : ' — راجع المهام المرتبطة بالأسئلة التي أخطأت فيها.') : '') : ''; }
+
+/* ------------------------------------------------------------ wiring ---- */
+function setMode(m) {
+  if (!MODES[m]) m = 'sep'; mode = m; S = { ...DEF[m] };
+  const md = MODES[m]; $('ttl').textContent = md.t; $('lead').innerHTML = bidi(md.lead); document.title = md.t + ' — محاكي 242';
+  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.m === m) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  $('objs').innerHTML = md.objs.map(c => `<div class="obj"><b>${c}</b><span>${bidi(OBJ[c])}</span></div>`).join('');
+  $('pfPanel').hidden = m !== 'im';
+  circuit(); buildControls(); buildTasks(); update();
+}
+window.addEventListener('hashchange', () => setMode(location.hash.slice(1)));
+buildQuiz(); setMode(location.hash.slice(1) || 'sep'); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
