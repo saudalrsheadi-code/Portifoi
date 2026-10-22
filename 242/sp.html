@@ -3,358 +3,936 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>محاكي الموحدات أحادية الوجه</title>
-</head>
-<body>
+<title>محاكي الموحدات المحكومة أحادية الوجه</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
 [hidden]{display:none!important}
-/* Layout: one column on phones — motor first, controls under it, then table + waveform; two columns from 900px */
 :root{
-  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2;
-  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#b5651d; --steel:#c9d3d7; --steel-d:#8d9ca2;
-  --ok:#2e7d4f; --bad:#b23b3b;
-  --f-body:"Cairo", "Segoe UI", Tahoma, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2; --wire:#2c3b41;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#c0661c; --mark-soft:#f7e6d6;
+  --ok:#2e7d4f; --bad:#b23b3b; --grid:#e6eded;
+  --f-body:"Cairo","Segoe UI",Tahoma,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
-  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
-  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}}
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f; --wire:#c9d6da;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#f0a35e; --mark-soft:#3d2a1a;
+  --ok:#5cc489; --bad:#e07b7b; --grid:#203034; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
-  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
-  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f; --wire:#c9d6da;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#f0a35e; --mark-soft:#3d2a1a;
+  --ok:#5cc489; --bad:#e07b7b; --grid:#203034; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;direction:rtl;
-  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 32px}
-.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
-header{display:grid;gap:2px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:4px}
 .kicker{color:var(--teal);font-weight:600;font-size:13px}
 h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
-.lead{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
-.grid{display:grid;gap:16px}
-@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
-.panel h2{margin:0;font-size:15px;color:var(--teal)}
-.motor svg{direction:ltr;width:100%;max-width:380px;margin:0 auto;display:block}
-.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.readout div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
-.readout b{display:block;font-family:var(--f-mono);font-size:18px;color:var(--fg);direction:ltr}
-.readout span{font-size:12px;color:var(--muted)}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
-.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:8px 16px;cursor:pointer;min-height:42px}
-.btn.ghost{background:transparent;color:var(--teal)}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-label{font-size:13px;color:var(--muted)}
-select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
-input[type=range]{accent-color:var(--teal);width:140px}
-.formula{font-family:var(--f-mono);direction:ltr;text-align:center;background:var(--teal-soft);border-radius:8px;padding:8px;font-size:clamp(13px,3.6vw,16px);overflow-wrap:anywhere}
-.tbl{overflow-x:auto}
-table{border-collapse:collapse;direction:ltr;margin:0 auto;font-family:var(--f-mono);font-size:15px}
-th,td{border:1px solid var(--line);padding:3px 14px;text-align:center}
-th{color:var(--teal);background:var(--teal-soft)}
-td.n{color:var(--muted);font-size:12px;border:0;padding-inline:6px}
-tr.cur td:not(.n){background:var(--teal);color:#fff}
-.wave{overflow-x:auto;direction:ltr}
-.wave svg{display:block;width:100%}
-.note{font-size:13px;color:var(--muted);margin:0}
-.predict{border:1px dashed var(--teal);border-radius:10px;padding:10px;display:grid;gap:8px}
-.predict[hidden]{display:none!important}
-.opts{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
-.opts button{font-family:var(--f-mono);font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
-.fb{font-size:14px;margin:0;min-height:1.7em}
-.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
-.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-left:4px}
-footer{font-size:12px;color:var(--muted)}
-@media (prefers-reduced-motion: reduce){*{transition:none!important}}
-.tabs{display:flex;gap:8px;flex-wrap:wrap}
-.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:4px 14px}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:70ch}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:5px 14px;min-height:36px;display:inline-flex;align-items:center}
 .tabs a[aria-current="page"]{background:var(--teal);color:#fff}
-.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto}
-.warn{color:var(--bad)}
+.objs{display:flex;flex-wrap:wrap;gap:8px}
+.obj{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;flex:1 1 260px}
+.obj b{flex:none;background:var(--teal);color:#fff;border-radius:6px;padding:0 7px;font-size:12px;line-height:22px;font-family:var(--f-mono);direction:ltr}
+.obj.lab b{background:var(--blue)}
+.grid{display:grid;gap:16px}
+@media (min-width:920px){.grid.two{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:16px;color:var(--teal)}
+.panel h2 small{color:var(--muted);font-weight:400;font-size:12px;margin-inline-start:6px}
+.ckt svg{direction:ltr;width:100%;display:block}
+.wv svg{direction:ltr;width:100%;display:block}
+svg text{font-family:var(--f-body)}
+.w{stroke:var(--wire);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dev .body{stroke:var(--wire);stroke-width:2;stroke-linejoin:round}
+.dev.scr .body{fill:var(--surface)} .dev.dio .body{fill:var(--wire)}
+.dev .bar,.dev .gate{stroke:var(--wire);stroke-width:2;fill:none}
+.dev.on .body{fill:var(--mark);stroke:var(--mark)} .dev.on .bar,.dev.on .gate{stroke:var(--mark)}
+.dev text,.lbl{fill:var(--fg);font-size:15px;font-weight:600}
+.lbl.m{fill:var(--muted);font-weight:400;font-size:13px}
+.flow{fill:none;stroke:var(--mark);stroke-width:4;stroke-dasharray:7 11;stroke-linecap:round;stroke-linejoin:round;opacity:.9;animation:run .7s linear infinite}
+@keyframes run{to{stroke-dashoffset:-36}}
+.flow.hidden{display:none}
+.mot{fill:var(--surface);stroke:var(--wire);stroke-width:2}
+.box{fill:var(--teal-soft);stroke:var(--teal);stroke-width:1.5}
+.inst{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.inst div,.kpi div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center;min-width:0}
+.inst b,.kpi b{display:block;font-family:var(--f-mono);font-size:16px;direction:ltr;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inst span,.kpi span{font-size:12px;color:var(--muted)}
+.kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpi b{font-size:18px}
+.now{font-size:14px;margin:0;min-height:1.7em}
+.now b{color:var(--mark)}
+.ctrl{display:grid;gap:10px}
+.sl{display:grid;grid-template-columns:auto minmax(0,1fr) 70px;gap:10px;align-items:center}
+.sl label{font-size:14px;color:var(--fg);font-weight:600}
+.sl output{font-family:var(--f-mono);direction:ltr;text-align:left;font-size:15px}
+input[type=range]{width:100%;accent-color:var(--teal);min-height:28px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer;min-height:38px}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:14px;border-radius:8px;padding:6px 14px;cursor:pointer;min-height:40px}
+.btn.ghost{background:transparent;color:var(--teal)}
+.btn.sm{min-height:34px;font-size:13px;padding:3px 10px;font-weight:600}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px}
+.chk input{width:18px;height:18px;accent-color:var(--teal)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmp div{border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.cmp span{font-size:12px;color:var(--muted);display:block}
+.cmp b{font-family:var(--f-mono);direction:ltr;display:block;text-align:right}
+.status{font-size:14px;margin:0;padding:8px 10px;border-radius:8px;background:var(--teal-soft)}
+.status.warn{background:var(--mark-soft)}
+.status.bad{background:#f7dede;color:#7a1f1f}
+@media (prefers-color-scheme: dark){.status.bad{background:#3d1d1d;color:#f3c2c2}}
+.quads{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qd{display:grid;gap:4px;justify-items:center}
+.qd svg{width:100%;max-width:190px;direction:ltr}
+.qd p{margin:0;font-size:12px;color:var(--muted);text-align:center}
+.qcell{fill:var(--bg);stroke:var(--line)} .qcell.on{fill:var(--teal)}
+.qtxt{font-size:11px;fill:var(--muted)} .qtxt.on{fill:#fff;font-weight:600}
+.inp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.inp label{display:grid;gap:2px;font-size:13px;color:var(--muted)}
+.inp input{font:inherit;font-family:var(--f-mono);font-size:15px;direction:ltr;text-align:left;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);color:var(--fg);width:100%;min-height:40px}
+@media (max-width:520px){.inp{grid-template-columns:repeat(2,minmax(0,1fr))} .inst{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ex{display:flex;flex-wrap:wrap;gap:6px}
+.ex button{border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:13px;border-radius:999px;padding:4px 12px;cursor:pointer;min-height:34px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.task{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.task.done{border-color:var(--ok)}
+.task h3{margin:0;font-size:14px;display:flex;gap:8px;align-items:center}
+.task h3 b{font-family:var(--f-mono);direction:ltr;background:var(--teal-soft);color:var(--teal);border-radius:6px;padding:0 6px;font-size:12px}
+.task h3 .ok{color:var(--ok);margin-inline-start:auto;font-size:13px}
+.task p{margin:0;font-size:14px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:5px 12px;cursor:pointer;min-height:38px}
+.opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--surface))}
+.opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.fb{font-size:14px;margin:0}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.act{background:var(--bg);border-radius:8px;padding:8px 10px;display:grid;gap:6px}
+.act p b{color:var(--teal)}
+.numin{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.numin input{width:110px;font:inherit;font-family:var(--f-mono);direction:ltr;border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-height:38px;background:var(--surface);color:var(--fg)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--line);padding:4px 6px;text-align:center;white-space:nowrap}
+th{background:var(--teal-soft);color:var(--teal);font-weight:600}
+td.e{font-family:var(--f-mono);direction:ltr;color:var(--muted)}
+td input{width:76px;font:inherit;font-family:var(--f-mono);direction:ltr;text-align:center;border:1px solid var(--line);border-radius:6px;padding:3px 4px;background:var(--surface);color:var(--fg);min-height:34px}
+td.err{font-family:var(--f-mono);direction:ltr}
+td.err.hi{color:var(--bad);font-weight:600}
+.charts{display:grid;gap:10px}
+@media (min-width:700px){.charts{grid-template-columns:1fr 1fr}}
+.charts svg{width:100%;direction:ltr;background:var(--bg);border-radius:8px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-left:4px}
+.score{font-weight:600;color:var(--teal);margin:0}
+footer{font-size:12px;color:var(--muted)}
+.how{margin:0;padding-inline-start:20px;font-size:14px}
+@media (prefers-reduced-motion: reduce){.flow{animation:none}}
 </style>
-<style>
-.sl{display:grid;grid-template-columns:7.5em 1fr 5.5em;gap:8px;align-items:center;font-size:13px}
-.sl input{width:100%;accent-color:var(--teal)}
-.sl output{font-family:var(--f-mono);direction:ltr;text-align:left;font-size:13px}
-.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
-.kpi div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
-.kpi b{display:block;font-family:var(--f-mono);font-size:16px;direction:ltr}
-.kpi span{font-size:12px;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:3px 12px;cursor:pointer}
-.inp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 10px;direction:ltr}
-.inp label{display:grid;gap:2px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
-.inp input{font:inherit;font-family:var(--f-mono);font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:100%}
-.circ svg{display:block;width:100%;max-width:460px;margin:0 auto;direction:ltr}
-.quad{display:grid;grid-template-columns:1fr 1fr;width:150px;height:150px;border:1px solid var(--line);margin:0 auto;direction:ltr;font-size:12px}
-.quad div{display:grid;place-items:center;border:1px solid var(--line);color:var(--muted);text-align:center;line-height:1.3}
-.quad div.on{background:var(--teal);color:#fff;font-weight:600}
-.lab td,.lab th{padding:3px 8px;font-size:13px}
-.warn{color:var(--bad);font-size:13px;margin:0}
-.calc{white-space:pre;line-height:1.8}
-</style>
+</head>
+<body>
 <div class="wrap">
-  <header>
-    <span class="kicker">التحكم الإلكتروني في الآلات — الوحدة الثالثة: التدوير بالموحدات أحادية الوجه</span>
-    <h1 id="h1"></h1>
-    <p class="lead" id="lead"></p>
-    <nav class="tabs" aria-label="نوع الموحد">
-      <a href="#half" data-m="half">نصف موجة</a>
-      <a href="#semi" data-m="semi">كاملة نصف محكوم</a>
-      <a href="#full" data-m="full">كاملة محكوم كلياً</a>
-      <a href="#dual" data-m="dual">المزدوج</a>
-    </nav>
-  </header>
+<header>
+  <div class="kicker">التحكم الإلكتروني في الآلات (242 كهرا) — الوحدة الثالثة والتجربتان الثانية والثالثة</div>
+  <h1 id="ttl">الموحد الأحادي الوجه</h1>
+  <p class="lead" id="lead"></p>
+  <nav class="tabs" aria-label="نوع الموحد">
+    <a href="#half" data-m="half">نصف الموجة</a>
+    <a href="#semi" data-m="semi">كامل الموجة نصف المحكوم</a>
+    <a href="#full" data-m="full">كامل الموجة المحكوم</a>
+    <a href="#dual" data-m="dual">المزدوج</a>
+  </nav>
+</header>
 
-  <div class="grid">
-    <section class="panel">
-      <h2>الدائرة ونقطة التشغيل</h2>
-      <div class="circ"><svg id="circ" viewBox="0 0 460 230" role="img" aria-label="دائرة الموحد والمحرك"></svg></div>
-      <div class="sl"><label for="al">زاوية إشعال المنتج α</label><input id="al" type="range" min="0" max="180" step="0.1" value="60"><output id="oal"></output></div>
-      <div class="sl" id="rowConv" hidden><label>الموحد العامل</label><div class="seg" role="group" aria-label="الموحد العامل"><button id="c1" aria-pressed="true">الأول</button><button id="c2" aria-pressed="false">الثاني</button></div><span></span></div>
-      <div class="row" id="rowRev" hidden><label><input type="checkbox" id="rev"> عكس قطبية المجال (للفرملة وإعادة التوليد)</label></div>
-      <div class="kpi">
-        <div><b id="kVa">0</b><span>Va (V)</span></div>
-        <div><b id="kIa">0</b><span>Ia (A)</span></div>
-        <div><b id="kEb">0</b><span>Eb (V)</span></div>
-        <div><b id="kN">0</b><span>n (rpm)</span></div>
-        <div><b id="kIf">0</b><span>If (A)</span></div>
-        <div><b id="kP">0</b><span>Pa = Va·Ia (W)</span></div>
-      </div>
-      <div class="quad" aria-label="ربع التشغيل">
-        <div id="q2">الثاني<br>فرملة أمامية</div><div id="q1">الأول<br>تدوير أمامي</div>
-        <div id="q3">الثالث<br>تدوير عكسي</div><div id="q4">الرابع<br>فرملة عكسية</div>
-      </div>
-      <p class="note" style="text-align:center">المحور الأفقي العزم T، والرأسي السرعة ω.</p>
-      <p class="note" id="explain"></p>
-      <p class="warn" id="warn"></p>
-    </section>
+<section class="panel" aria-labelledby="h-obj">
+  <h2 id="h-obj">ماذا ستتعلم هنا؟</h2>
+  <div class="objs" id="objs"></div>
+  <ol class="how">
+    <li>ابدأ بالمهام أسفل الصفحة: أجب عن سؤال التوقع أولاً، ثم نفّذ المطلوب على المحاكي وتحقق.</li>
+    <li>شغّل الحركة لترى مسار التيار في الدائرة يتنقل بين العناصر مع المؤشر على الموجات.</li>
+    <li>في المعمل: أدخل بيانات لوحة المحرك، ثم سجّل قراءاتك في جدول التجربة لتقارنها بالمتوقع.</li>
+  </ol>
+</section>
 
-    <section class="panel">
-      <h2>أشكال موجات الجهد والتيار</h2>
-      <div class="wave"><svg id="wave" viewBox="0 0 600 470" role="img" aria-label="موجات الجهد والتيار"></svg></div>
-      <div class="legend"><span><i style="background:var(--muted)"></i>جهد المصدر vs</span><span><i style="background:var(--teal)"></i>جهد المنتج va</span><span><i style="background:var(--mark)"></i>نبضات الإشعال والتيارات</span></div>
-      <div class="formula" id="formula"></div>
-      <div class="calc" id="calc"></div>
-    </section>
-  </div>
+<div class="grid two">
+  <section class="panel ckt" aria-labelledby="h-ckt">
+    <h2 id="h-ckt">الدائرة ومسار التيار <small id="cktsub"></small></h2>
+    <div id="ckt"></div>
+    <p class="now" id="now"></p>
+    <div class="inst" id="inst"></div>
+    <div class="row">
+      <button class="btn" id="play" type="button">إيقاف الحركة</button>
+      <button class="btn ghost sm" id="stepb" type="button">−5°</button>
+      <button class="btn ghost sm" id="stepf" type="button">+5°</button>
+    </div>
+    <div class="sl"><label for="th">ωt</label><input type="range" id="th" min="0" max="719" step="1" value="0"><output id="tho">0°</output></div>
+  </section>
 
-  <div class="grid">
-    <section class="panel">
-      <h2>بيانات المحرك والمصدر</h2>
-      <div class="inp">
-        <label>Vs (V rms)<input id="Vs" type="number" value="208" step="1"></label>
-        <label>Ra (Ω)<input id="Ra" type="number" value="0.1" step="0.01"></label>
-        <label>Kv (V/A·rad/s)<input id="Kv" type="number" value="1.1" step="0.01"></label>
-        <label>Rf (Ω)<input id="Rf" type="number" value="150" step="1"></label>
-        <label>αf (°)<input id="af" type="number" value="0" step="1" min="0" max="90"></label>
-        <label>T load (N·m)<input id="TL" type="number" value="75" step="1"></label>
-      </div>
-      <p class="note">أمثلة الحقيبة جاهزة للتحقق من الحل:</p>
-      <div class="chips">
-        <button data-ex="31a">مثال (3-1) أ: α عند 700 rpm</button>
-        <button data-ex="31b">مثال (3-1) ب: α = 0</button>
-        <button data-ex="32a">مثال (3-2) أ</button>
-        <button data-ex="32c">مثال (3-2) ت: إعادة التوليد</button>
-      </div>
-      <p class="note">يفترض المحاكي، كما في الحقيبة، أن تيار المنتج متصل وخالٍ من التذبذبات لوجود ملف تنعيم كبير، وأن مفاقيد اللاحمل والاحتكاك مهملة.</p>
-    </section>
-
-    <section class="panel">
-      <h2>القيم المتوقعة لجدول التجربة</h2>
-      <p class="note" id="labNote"></p>
-      <div class="tbl"><table class="lab" id="lab"></table></div>
-      <p class="note">أدخل بيانات محرك المعمل في الخانات المجاورة لتحصل على القيم المتوقعة، وقارنها بقراءاتك. القيم نظرية بافتراض تيار متصل؛ والقراءات الفعلية عند الزوايا الكبيرة تقل عنها لأن التيار يصبح متقطعاً.</p>
-    </section>
-  </div>
-  <footer>المرجع: الحقيبة التدريبية «التحكم الإلكتروني في الآلات (نظري)»، الوحدة الثالثة، والحقيبة العملية، التجربتان الثانية والثالثة. الكلية التقنية بدومة الجندل.</footer>
+  <section class="panel wv" aria-labelledby="h-wv">
+    <h2 id="h-wv">أشكال الموجات <small>دورتان من المصدر</small></h2>
+    <div id="wv"></div>
+    <div class="legend"><span><i style="background:var(--muted)"></i>جهد المصدر vs</span><span><i style="background:var(--teal)"></i>جهد المنتج va</span><span><i style="background:var(--blue)"></i>القوة الدافعة المضادة Eb</span><span><i style="background:var(--mark)"></i>تيار المنتج ia</span></div>
+  </section>
 </div>
+
+<div class="grid two">
+  <section class="panel ctrl" aria-labelledby="h-ctl">
+    <h2 id="h-ctl">التحكم والقراءات</h2>
+    <div class="row" id="convRow" hidden><span class="note">الموحد العامل:</span><div class="seg" id="conv"><button type="button" data-v="1" aria-pressed="true">الأول</button><button type="button" data-v="2" aria-pressed="false">الثاني</button></div></div>
+    <div class="row" id="opRow" hidden><span class="note">طريقة التشغيل:</span><div class="seg" id="op"><button type="button" data-v="motor" aria-pressed="true">المحرك يدير حملاً</button><button type="button" data-v="gen" aria-pressed="false">الحمل يدير الآلة</button></div></div>
+    <div class="sl"><label for="al">زاوية الإشعال α</label><input type="range" id="al" min="0" max="180" step="0.1" value="60"><output id="alo"></output></div>
+    <div class="sl" id="nGenRow" hidden><label for="ng">سرعة الحمل n</label><input type="range" id="ng" min="-1500" max="1500" step="1" value="679"><output id="ngo"></output></div>
+    <div class="row"><label class="chk" id="frRow" hidden><input type="checkbox" id="fr">عكس توصيل المجال</label>
+      <label class="chk"><input type="checkbox" id="ideal" checked>افتراض الحقيبة: تيار متصل ومثالي (L كبيرة جداً)</label></div>
+    <div class="sl" id="laRow"><label for="la">محاثة دائرة المنتج L</label><input type="range" id="la" min="1" max="100" step="1" value="20"><output id="lao"></output></div>
+    <p class="status" id="status"></p>
+    <div class="kpi" id="kpi"></div>
+    <div class="cmp"><div><span>Va من معادلة الحقيبة</span><b id="vform"></b></div><div><span>Va من المحاكاة (قراءة الفولتميتر)</span><b id="vsim"></b></div></div>
+    <div class="quads">
+      <div class="qd"><svg viewBox="0 0 180 150" id="qTN"></svg><p>المحرك: العزم T أفقياً والسرعة n رأسياً</p></div>
+      <div class="qd"><svg viewBox="0 0 180 150" id="qVI"></svg><p>الموحد: التيار Ia أفقياً والجهد Va رأسياً</p></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-dat">
+    <h2 id="h-dat">بيانات المحرك والمصدر</h2>
+    <div class="inp">
+      <label>جهد المصدر Vs (V rms)<input id="Vs" type="number" inputmode="decimal" step="any"></label>
+      <label>التردد f (Hz)<input id="f" type="number" inputmode="decimal" step="any"></label>
+      <label>مقاومة المنتج Ra (Ω)<input id="Ra" type="number" inputmode="decimal" step="any"></label>
+      <label>ثابت الجهد Kv (V/A·rad/s)<input id="Kv" type="number" inputmode="decimal" step="any"></label>
+      <label>مقاومة المجال Rf (Ω)<input id="Rf" type="number" inputmode="decimal" step="any"></label>
+      <label>زاوية المجال αf (°)<input id="af" type="number" inputmode="decimal" step="any"></label>
+      <label id="tlLab">عزم الحمل TL (N·m)<input id="TL" type="number" inputmode="decimal" step="any"></label>
+    </div>
+    <p class="note">أمثلة الحقيبة جاهزة للتحقق من حلك؛ كل زر يضبط البيانات والزاوية كما في نص المثال:</p>
+    <div class="ex" id="ex"></div>
+    <p class="note" id="fieldNote"></p>
+  </section>
+</div>
+
+<section class="panel" aria-labelledby="h-task">
+  <h2 id="h-task">مهام المحاكاة: توقّع، ثم نفّذ، ثم تحقّق</h2>
+  <p class="note">كل مهمة مرتبطة بهدف. اختر توقعك قبل أن تلمس المحاكي؛ الهدف أن تكتشف الفرق بين ما توقعته وما يحدث فعلاً.</p>
+  <div id="tasks" class="grid"></div>
+</section>
+
+<section class="panel" id="labPanel" aria-labelledby="h-lab">
+  <h2 id="h-lab">جدول التجربة <small id="labsub"></small></h2>
+  <p class="note">أدخل بيانات لوحة محرك المعمل في «بيانات المحرك»، واجعل عزم الحمل صغيراً لأن المحرك يعمل في التجربة دون حمل، وألغِ افتراض التيار المتصل واضبط L على قيمة ملف التنعيم. سجّل قراءاتك في الخانات؛ يحسب المحاكي القيم المتوقعة ونسبة الخطأ ويرسم المنحنيات. القراءات تُحفظ في هذا المتصفح فقط.</p>
+  <div class="tbl"><table id="lab"></table></div>
+  <div class="charts"><svg viewBox="0 0 320 200" id="chN"></svg><svg viewBox="0 0 320 200" id="chV"></svg></div>
+  <div class="legend"><span><i style="background:var(--teal)"></i>المتوقع من المحاكي</span><span><i style="background:var(--mark)"></i>قراءاتك</span></div>
+  <div class="row"><button class="btn ghost sm" id="labClear" type="button">مسح قراءاتي</button></div>
+</section>
+
+<section class="panel" aria-labelledby="h-q">
+  <h2 id="h-q">تقويم ذاتي</h2>
+  <div id="quiz" class="grid"></div>
+  <p class="score" id="score"></p>
+</section>
+
+<footer>المرجع: الحقيبة التدريبية «التحكم الإلكتروني في الآلات» — النظري: الوحدة الثالثة، الأشكال (3-3) إلى (3-9) والمعادلات (3-1) إلى (3-8) والمثالان (3-1) و(3-2)؛ العملي: التجربتان الثانية والثالثة. النموذج الزمني يحل معادلة دائرة المنتج لحظياً بخطوة ربع درجة، ونبضات الإشعال ممتدة حتى نهاية نصف الدورة.</footer>
+</div>
+
+<script>
+// Single-phase controlled-rectifier DC drive engine (shared by the page and the node tests).
+// Converter frame: current i >= 0. States: O = no device conducting, A = positive-half pair, B = negative-half pair, F = freewheel diode.
+const ENG = (() => {
+  const N = 1440;            // integration steps per supply cycle (0.25 deg)
+  const REC = 4;             // record every 4th step -> 360 points per cycle
+  const TWO_PI = 2 * Math.PI;
+
+  const vaFormula = (type, Vm, a) =>
+    type === 'half' ? Vm / TWO_PI * (1 + Math.cos(a)) :
+    type === 'semi' ? Vm / Math.PI * (1 + Math.cos(a)) :
+    2 * Vm / Math.PI * Math.cos(a);
+
+  // one supply cycle from (i0, st0); returns end current/state and optional record
+  function cycle(type, P, Eb, i0, st0, rec) {
+    const dt = 1 / (P.f * N), a = P.a, Vm = P.Vm, La = P.La, Ra = P.Ra;
+    let i = i0, st = i0 > 0 ? st0 : 'O';
+    let sVa = 0, sI = 0, sP = 0, off = 0;
+    for (let k = 0; k < N; k++) {
+      const th = TWO_PI * k / N, vs = Vm * Math.sin(th);
+      const wa = th >= a && th < Math.PI, wb = type !== 'half' && th >= a + Math.PI;   // gate pulse train held to the end of each half cycle
+      if (st === 'O') {
+        if (wa && vs > Eb) st = 'A';
+        else if (wb && -vs > Eb) st = 'B';
+      } else if (st === 'A') {
+        if (type !== 'full' && vs < 0) st = 'F';
+        else if (type === 'full' && wb && vs < 0) st = 'B';
+      } else if (st === 'B') {
+        if (type === 'semi' && vs > 0) st = 'F';
+        else if (type === 'full' && wa && vs > 0) st = 'A';
+      } else if (st === 'F') {
+        if (wa && vs > 0) st = 'A';
+        else if (wb && -vs > 0) st = 'B';
+      }
+      let va = st === 'A' ? vs : st === 'B' ? -vs : st === 'F' ? 0 : Eb;
+      if (st !== 'O') {
+        i = (i + dt * (va - Eb) / La) / (1 + dt * Ra / La);
+        if (i <= 0) { i = 0; st = 'O'; va = Eb; }
+      }
+      if (st === 'O') off++;
+      sVa += va; sI += i; sP += va * i;
+      if (rec && k % REC === 0) { rec.va.push(va); rec.i.push(i); rec.st.push(st); rec.vs.push(vs); }
+    }
+    return { i, st, Va: sVa / N, Ia: sI / N, Pa: sP / N, off };
+  }
+
+  // periodic steady state for a fixed back-emf (converter frame)
+  function periodic(type, P, Eb, guess) {
+    const s0 = type === 'full' ? 'B' : 'F';
+    const map = x => Math.max(0, cycle(type, P, Eb, x, s0, null).i);
+    let x = Math.max(0, guess || 0);
+    for (let it = 0; it < 6; it++) {
+      const x1 = map(x), x2 = map(x1);
+      const den = x2 - 2 * x1 + x;
+      let nx = Math.abs(den) > 1e-12 ? x - (x1 - x) * (x1 - x) / den : x2;
+      if (!isFinite(nx) || nx < 0) nx = x2;
+      if (Math.abs(nx - x) < 1e-6 * (1 + Math.abs(x))) { x = nx; break; }
+      x = nx;
+    }
+    const g = y => map(y) - y;             // decreasing in y (map slope < 1)
+    const tol = 1e-4 * (1 + x);
+    if (!(Math.abs(g(x)) < tol)) {         // fall back to a bracketed (Illinois) root of map(y) = y
+      let lo = 0, glo = g(0);
+      if (glo <= 1e-9) x = 0;
+      else {
+        let hi = Math.max(1, 2 * x), ghi = g(hi);
+        while (ghi > 0 && hi < 1e7) { lo = hi; glo = ghi; hi *= 4; ghi = g(hi); }
+        let side = 0;
+        for (let it = 0; it < 60; it++) {
+          x = (lo * ghi - hi * glo) / (ghi - glo);
+          const gx = g(x);
+          if (Math.abs(gx) < 1e-5 * (1 + x)) break;
+          if (gx > 0) { lo = x; glo = gx; if (side === 1) ghi /= 2; side = 1; }
+          else { hi = x; ghi = gx; if (side === -1) glo /= 2; side = -1; }
+        }
+      }
+    }
+    const rec = { va: [], i: [], st: [], vs: [] };
+    const r = cycle(type, P, Eb, x, s0, rec);
+    r.rec = rec; r.cont = r.off === 0;
+    return r;
+  }
+
+  function idealWave(type, P, Ia, Eb) {
+    const rec = { va: [], i: [], st: [], vs: [] }, a = P.a;
+    for (let k = 0; k < 360; k++) {
+      const th = TWO_PI * k / 360, vs = P.Vm * Math.sin(th);
+      let st;
+      if (Ia <= 0) st = 'O';
+      else if (type === 'full') st = (th >= a && th < a + Math.PI) || th < a - Math.PI ? 'A' : 'B';
+      else if (type === 'half') st = th >= a && th < Math.PI ? 'A' : 'F';
+      else st = th >= a && th < Math.PI ? 'A' : (th >= a + Math.PI ? 'B' : 'F');
+      const va = st === 'A' ? vs : st === 'B' ? -vs : st === 'F' ? 0 : Eb;
+      rec.va.push(va); rec.i.push(Math.max(Ia, 0)); rec.st.push(st); rec.vs.push(vs);
+    }
+    return rec;
+  }
+
+  // S: ui state. Returns everything the page needs, in the machine (actual) frame.
+  function compute(S) {
+    const Vm = Math.SQRT2 * S.Vs, a = S.alpha * Math.PI / 180, af = S.af * Math.PI / 180;
+    const type = S.mode === 'dual' ? 'full' : S.mode;
+    const fieldType = (S.mode === 'half' || S.mode === 'semi') ? 'semi' : 'full';
+    const Vf = Math.max(0, vaFormula(fieldType, Vm, af));
+    const rev = S.fieldRev && (S.mode === 'full' || S.mode === 'dual');
+    const If = Vf / S.Rf * (rev ? -1 : 1);
+    const K = S.Kv * Math.abs(If), sF = If < 0 ? -1 : 1;
+    const sC = S.mode === 'dual' && S.conv === 2 ? -1 : 1;
+    const P = { Vm, a, f: S.f, Ra: S.Ra, La: S.La / 1000 };
+    const Vform = vaFormula(type, Vm, a);
+    const out = { Vm, Vf, If, Vform, type, fieldType, sC, status: '', warn: '' };
+    if (K < 1e-9) { out.warn = 'nofield'; out.Va = 0; out.Ia = 0; out.Eb = 0; out.n = 0; out.Td = 0; out.Pa = 0; out.rec = idealWave(type, P, 0, 0); out.cont = true; return out; }
+    const op = (S.mode === 'full' || S.mode === 'dual') ? S.op : 'motor';
+    let Va, Ia, Eb, w, Pa, rec, cont = true;   // converter-frame quantities
+    if (op === 'motor') {
+      const TL = Math.max(0, S.TL);
+      if (S.ideal) {
+        Va = Vform; Ia = TL / K; Eb = Va - Ia * S.Ra;
+        if (Eb <= 0) { w = 0; Eb = 0; Ia = Math.max(0, Va) / S.Ra; if (Va < 0) Va = 0; out.status = 'stall'; } else w = Eb / K;
+        Pa = Va * Ia; rec = idealWave(type, P, Ia, Eb);
+      } else {
+        const f = (ww, g) => { const r = periodic(type, P, K * ww, g); return [K * r.Ia - TL, r]; };
+        let [f0, r0] = f(0, TL / K);
+        if (f0 <= 0) { w = 0; Eb = 0; var R = r0; out.status = 'stall'; }
+        else {
+          let lo = 0, hi = Vm / K, g = r0.i, R;
+          for (let it = 0; it < 40; it++) {
+            const mid = (lo + hi) / 2, [fm, rm] = f(mid, g);
+            if (fm > 0) lo = mid; else hi = mid;
+            g = rm.i; R = rm;
+            if (hi - lo < 1e-4) break;
+          }
+          w = (lo + hi) / 2; Eb = K * w; R = periodic(type, P, Eb, g);
+          var R2 = R;
+        }
+        const RR = R2 || R;
+        Va = RR.Va; Ia = RR.Ia; Pa = RR.Pa; rec = RR.rec; cont = RR.cont;
+      }
+      // actual frame: speed and torque share the sign sF*sC
+      out.n = sF * sC * w * 60 / (2 * Math.PI);
+      out.Td = sF * sC * K * Ia;
+    } else {
+      const wAct = S.nGen * 2 * Math.PI / 60;
+      const EbAct = S.Kv * If * wAct;
+      Eb = sC * EbAct;
+      if (S.ideal) {
+        Va = Vform; Ia = (Va - Eb) / S.Ra;
+        if (Ia < 0) { Ia = 0; out.status = 'nocurrent'; }
+        Pa = Va * Ia; rec = idealWave(type, P, Ia, Eb);
+      } else {
+        const R = periodic(type, P, Eb, Math.max(0, (Vform - Eb) / S.Ra));
+        Va = R.Va; Ia = R.Ia; Pa = R.Pa; rec = R.rec; cont = R.cont;
+        if (Ia < 1e-6) out.status = 'nocurrent';
+      }
+      out.n = S.nGen;
+      out.Td = S.Kv * If * sC * Ia;
+    }
+    out.Vform = sC * Vform; out.Va = sC * Va; out.Ia = sC * Ia; out.Eb = sC * Eb; out.Pa = Pa; out.cont = cont;
+    if (sC < 0) rec = { va: rec.va.map(x => -x), i: rec.i.map(x => -x), st: rec.st, vs: rec.vs };
+    out.rec = rec;
+    const sT = Math.abs(out.Td) < 1e-6 ? 0 : Math.sign(out.Td), sN = Math.abs(out.n) < 1e-6 ? 0 : Math.sign(out.n);
+    out.qTN = sT === 0 && sN === 0 ? 0 : (sN >= 0 ? (sT >= 0 ? 1 : 2) : (sT <= 0 ? 3 : 4));
+    const sI = Math.abs(out.Ia) < 1e-6 ? 0 : Math.sign(out.Ia), sV = Math.abs(out.Va) < 1e-6 ? 0 : Math.sign(out.Va);
+    out.qVI = sI === 0 ? 0 : (sI > 0 ? (sV >= 0 ? 1 : 4) : (sV <= 0 ? 3 : 2));
+    return out;
+  }
+  return { compute, vaFormula, periodic, cycle };
+})();
+if (typeof module !== 'undefined') module.exports = ENG;
+
+</script>
 <script>
 (() => {
-const NS = 'http://www.w3.org/2000/svg', $ = id => document.getElementById(id);
-const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
-const txt = (p, x, y, s, a = {}) => { const t = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--f-mono)' }, a), p); t.textContent = s; return t; };
-const f = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
-const rad = d => d * Math.PI / 180, PI = Math.PI;
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 1) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NS = 'http://www.w3.org/2000/svg';
+const bidi = t => t.replace(/و(?=[A-Za-z])/g, 'و ').replace(/([A-Za-z][A-Za-z0-9′]*(?:\s?[<>=]\s?[0-9.]+°?)?)/g, '<bdi dir="ltr">$1</bdi>');
+const sv = (tag, attrs, parent, txt) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; if (parent) parent.appendChild(e); return e; };
 
+/* ------------------------------------------------------------ content ---- */
+const OBJ = {
+  '3-3': 'يرسم الدائرة الأساسية للتدوير بالموحدات المحكومة ويحدد دور ملف التنعيم وموحد المجال.',
+  '3-4': 'يرسم موجات الجهد والتيار للموحد نصف الموجة والموحد كامل الموجة نصف المحكوم ويحدد ربع التشغيل.',
+  '3-5': 'يحسب زاوية الإشعال والسرعة والعزم لمحرك يغذيه موحد نصف محكوم.',
+  '3-6': 'يشرح عمل الموحد كامل الموجة المحكوم ويفسر الجهد السالب عند α > 90° وإعادة التوليد.',
+  '3-7': 'يحسب السرعة والعزم وزاوية الإشعال والقدرة المستردة للمصدر للموحد المحكوم كلياً.',
+  '3-11': 'يحدد الموحد العامل وزاوية إشعاله في كل ربع من الأرباع الأربعة للموحد المزدوج.',
+  '3-12': 'يختار الموحد المناسب بحسب أرباع التشغيل المطلوبة.',
+  'م1-4': 'يقيس Va وIa وN عند زوايا الإشعال المحددة ويرسم موجة الجهد من راسم الذبذبات.',
+  'م1-5': 'يقارن القراءات المقيسة بالمحسوبة ويفسر الفرق عند الزوايا الكبيرة.'
+};
 const MODES = {
-  half: { h1: 'الموحد الأحادي الوجه نصف الموجة المحكوم', lead: 'ثايرستور واحد ودايود حذافة في دائرة المنتج، وموحد كامل الموجة نصف محكوم في دائرة المجال. ينتج جهداً موجباً وتياراً موجباً (ربع واحد).', fig: 'الشكلان (3-3) و(3-4)', eq: 'Va = (Vm / 2π)(1 + cos α)', fld: 'semi' },
-  semi: { h1: 'الموحد الأحادي الوجه كامل الموجة نصف المحكوم', lead: 'ثايرستوران ودايودان مع دايود حذافة في دائرة المنتج، وموحد مماثل في دائرة المجال. ينتج جهداً موجباً وتياراً موجباً (ربع واحد).', fig: 'الشكلان (3-5) و(3-6)، والتجربة الثانية', eq: 'Va = (Vm / π)(1 + cos α)', fld: 'semi' },
-  full: { h1: 'الموحد الأحادي الوجه كامل الموجة المحكوم', lead: 'أربعة ثايرستورات بلا دايود حذافة. يكون الجهد موجباً عند α < 90° وسالباً عند α > 90°، والتيار موجب دائماً (ربعان).', fig: 'الشكلان (3-7) و(3-8)، والتجربة الثالثة', eq: 'Va = (2Vm / π) cos α', fld: 'full' },
-  dual: { h1: 'الموحد المزدوج الأحادي الوجه', lead: 'موحدان محكومان في دائرة المنتج يعمل أحدهما في كل مرة، فيمكن عكس الجهد والتيار والعمل في الأرباع الأربعة.', fig: 'الشكل (3-9)', eq: 'Va1 = (2Vm / π) cos α1 ، Va2 = −(2Vm / π) cos α2', fld: 'full' },
+  half: { t: 'الموحد الأحادي الوجه نصف الموجة', lead: 'ثايرستور واحد Q ودايود حذافة D على المنتج، وموحد نصف محكوم في دائرة المجال. الجهد على المنتج موجب دائماً، فيعمل في ربع واحد.', objs: ['3-3', '3-4'], sub: 'الشكل (3-3)' },
+  semi: { t: 'الموحد الأحادي الوجه كامل الموجة نصف المحكوم', lead: 'ثايرستوران Q1 وQ2 ودايودان D1 وD2 ودايود حذافة D. الجهد على المنتج موجب دائماً، فيعمل في ربع واحد. دائرة التجربة الثانية.', objs: ['3-4', '3-5', 'م1-4', 'م1-5'], sub: 'الشكل (3-5)', lab: 'التجربة الثانية — جدول (2-1)' },
+  full: { t: 'الموحد الأحادي الوجه كامل الموجة المحكوم', lead: 'أربعة ثايرستورات Q1 إلى Q4 دون دايود حذافة. يصبح الجهد المتوسط سالباً عند α > 90°، فتعود القدرة إلى المصدر إذا انعكست Eb. دائرة التجربة الثالثة.', objs: ['3-6', '3-7', 'م1-4', 'م1-5'], sub: 'الشكل (3-7)', lab: 'التجربة الثالثة — جدول (3-1)' },
+  dual: { t: 'الموحد المزدوج الأحادي الوجه', lead: 'موحدان محكومان كلياً متعاكسان على المنتج: الأول يمرر تياراً موجباً والثاني تياراً سالباً، فيعمل المحرك في الأرباع الأربعة.', objs: ['3-11', '3-12'], sub: 'الشكل (3-9)' }
 };
-let mode = 'semi', conv = 1;
+const EX31 = { Vs: 208, f: 60, Ra: 0.1, Kv: 1.1, Rf: 150, af: 0, TL: 75 };
+const EX32 = { Vs: 440, f: 60, Ra: 0.2, Kv: 1.35, Rf: 200, af: 0, TL: 133.65 };
+const EXAMPLES = {
+  half: [['مثال (3-1) أ ببيانات نصف الموجة', { ...EX31, alpha: 30 }]],
+  semi: [['مثال (3-1) أ: n = 700 rpm', { ...EX31, alpha: 82.3 }], ['مثال (3-1) ب: α = 0', { ...EX31, alpha: 0 }], ['مثال (3-1) ت: 1400 rpm', { ...EX31, alpha: 0, af: 36.3, TL: 67.8 }]],
+  full: [['مثال (3-2) أ', { ...EX32, alpha: 60, op: 'motor', fieldRev: false }], ['مثال (3-2) ب: العزم أقل 20%', { ...EX32, alpha: 60, TL: 106.92, op: 'motor', fieldRev: false }], ['مثال (3-2) ت: عكس المجال', { ...EX32, alpha: 117.36, op: 'gen', nGen: 678.8, fieldRev: true }]],
+  dual: [['بيانات المثال (3-2)', { ...EX32, alpha: 45, op: 'motor', conv: 1, fieldRev: false }]]
+};
 
-function params() {
-  return { Vs: +$('Vs').value, Ra: +$('Ra').value, Kv: +$('Kv').value, Rf: +$('Rf').value, af: +$('af').value, TL: +$('TL').value, al: +$('al').value, rev: $('rev').checked };
-}
-function avgVa(m, Vm, al, c) {
-  const a = rad(al);
-  if (m === 'half') return Vm / (2 * PI) * (1 + Math.cos(a));
-  if (m === 'semi') return Vm / PI * (1 + Math.cos(a));
-  const v = 2 * Vm / PI * Math.cos(a);
-  return m === 'dual' && c === 2 ? -v : v;
-}
-function solve(p, m = mode, c = conv) {
-  const Vm = p.Vs * Math.SQRT2;
-  const Vf = MODES[m].fld === 'semi' ? Vm / PI * (1 + Math.cos(rad(p.af))) : 2 * Vm / PI * Math.cos(rad(p.af));
-  let If = Vf / p.Rf; if (p.rev) If = -If;
-  const Va = avgVa(m, Vm, p.al, c);
-  // torque balance: T = Kv·If·Ia must equal the load torque (motoring, same sign as If·Ia)
-  let Ia = p.TL / (p.Kv * If);
-  if (m === 'dual' && c === 2) Ia = -Ia;               // converter 2 carries reverse armature current
-  if (m !== 'dual' && Ia < 0) Ia = -Ia;               // single converters conduct one direction only
-  const Eb = Va - Ia * p.Ra, w = Eb / (p.Kv * If), n = w * 60 / (2 * PI);
-  return { Vm, Vf, If, Va, Ia, Eb, w, n, T: p.Kv * If * Ia, P: Va * Ia };
-}
-function quadrant(r) {
-  const sw = r.w >= 0 ? 1 : -1, sT = r.T >= 0 ? 1 : -1;
-  return sw > 0 ? (sT > 0 ? 1 : 2) : (sT > 0 ? 4 : 3);
-}
+/* ------------------------------------------------------------ state ------ */
+const S = { mode: 'semi', alpha: 82.3, ...EX31, La: 20, ideal: true, op: 'motor', nGen: 679, fieldRev: false, conv: 1, theta: 0, playing: !reduce };
+let R = null;
 
-// ---------- waveforms ----------
-function waves(m, al, c) {
-  const a = rad(al), pts = [];
-  for (let i = 0; i <= 720; i++) {
-    const th = i / 720 * 4 * PI, ph = th % (2 * PI), vs = Math.sin(th);
-    let va = 0, iQa = 0, iQb = 0, iD = 0, is = 0;
-    if (m === 'half') {
-      const on = ph >= a && ph < PI; va = on ? vs : 0; iQa = on ? 1 : 0; iD = on ? 0 : 1; is = iQa;
-    } else if (m === 'semi') {
-      const p1 = ph >= a && ph < PI, p2 = ph >= PI + a && ph < 2 * PI;
-      va = p1 || p2 ? Math.abs(vs) : 0; iQa = p1 ? 1 : 0; iQb = p2 ? 1 : 0; iD = p1 || p2 ? 0 : 1; is = p1 ? 1 : p2 ? -1 : 0;
-    } else {
-      // full / dual: pair 1 conducts from α to π+α, pair 2 from π+α to 2π+α (continuous current)
-      const x = ((th - a) % (2 * PI) + 2 * PI) % (2 * PI), first = x < PI;
-      const sv = Math.sin(th); va = first ? sv : -sv; if (th < a) va = -sv;
-      iQa = first && th >= a ? 1 : 0; iQb = !first || th < a ? 1 : 0; is = iQa ? 1 : -1;
-      if (m === 'dual' && c === 2) { va = -va; }
-    }
-    pts.push({ th, vs, va, iQa, iQb, iD, is });
+/* ------------------------------------------------------------ circuit ---- */
+const G = { TOP: 40, BOT: 270, LX: 150, RX: 230, ML: 105, MR: 195, SX: 45, SY: 150, FW: 320 };
+let CK = null;  // {svg, flows:{key:el}, devs:{id:el}, W}
+
+function poly(pts) { return 'M' + pts.map(p => p[0] + ' ' + p[1]).join(' L'); }
+function device(g, x, y, dir, kind, id, label, labDx = 16, labDy = 4) {
+  const rot = { u: 0, r: 90, d: 180 }[dir];
+  const grp = sv('g', { class: 'dev ' + kind, id }, g);
+  const inner = sv('g', { transform: `rotate(${rot} ${x} ${y})` }, grp);
+  sv('path', { class: 'body', d: `M${x - 11} ${y + 9} L${x + 11} ${y + 9} L${x} ${y - 9} Z` }, inner);
+  sv('path', { class: 'bar', d: `M${x - 12} ${y - 9} L${x + 12} ${y - 9}` }, inner);
+  if (kind === 'scr') sv('path', { class: 'gate', d: `M${x + 5} ${y - 9} L${x + 14} ${y - 18} L${x + 22} ${y - 18}` }, inner);
+  sv('text', { x: x + labDx, y: y + labDy, 'text-anchor': labDx < 0 ? 'end' : 'start' }, grp, label);
+  return grp;
+}
+function coilV(g, x, y0, n = 4, r = 6) {
+  let d = `M${x} ${y0}`; for (let k = 0; k < n; k++) d += ` a${r} ${r} 0 0 1 0 ${2 * r}`;
+  sv('path', { class: 'w', d }, g);
+}
+function source(g, x, y, lab) {
+  sv('circle', { cx: x, cy: y, r: 15, class: 'mot' }, g);
+  sv('path', { class: 'w', d: `M${x - 8} ${y} q4 -8 8 0 q4 8 8 0` }, g);
+  sv('text', { x: x - 20, y: y + 5, 'text-anchor': 'end', class: 'lbl' }, g, lab);
+}
+// one bridge (or the half-wave branch) in a local frame; T maps local -> svg coords
+function bridge(g, type, T, pre, names, MX) {
+  const { TOP, BOT, LX, RX, ML, MR, SX, SY } = G;
+  const P = (x, y) => T(x, y), L = pts => poly(pts.map(p => P(p[0], p[1])));
+  const dirU = T(0, 0)[1] < T(0, 10)[1] ? 'u' : 'd';
+  const devs = {}, paths = {};
+  const [sx, sy] = P(SX, SY); source(g, sx, sy, 'vs');
+  if (type === 'half') {
+    sv('path', { class: 'w', d: L([[SX, SY - 15], [SX, TOP], [MX, TOP]]) }, g);
+    sv('path', { class: 'w', d: L([[SX, SY + 15], [SX, BOT], [MX, BOT]]) }, g);
+    const [qx, qy] = P(110, TOP); devs.Q = device(g, qx, qy, 'r', 'scr', pre + 'Q', names.Q, -2, -14);
+    paths.A = L([[SX, SY - 15], [SX, TOP], [MX, TOP], [MX, BOT], [SX, BOT], [SX, SY + 15]]);
+    return { devs, paths };
   }
-  return pts;
+  sv('path', { class: 'w', d: L([[SX, SY - 15], [SX, ML], [LX, ML]]) }, g);
+  // bottom source wire hops over the left leg
+  const a = P(SX, SY + 15), b = P(SX, MR), c1 = P(LX - 7, MR), c2 = P(LX + 7, MR), e = P(RX, MR);
+  const sweep = (T(0, 0)[0] < T(10, 0)[0]) === (dirU === 'u') ? 1 : 0;
+  sv('path', { class: 'w', d: `M${a[0]} ${a[1]} L${b[0]} ${b[1]} L${c1[0]} ${c1[1]} A7 7 0 0 ${sweep} ${c2[0]} ${c2[1]} L${e[0]} ${e[1]}` }, g);
+  sv('path', { class: 'w', d: L([[LX, TOP], [LX, BOT]]) }, g);
+  sv('path', { class: 'w', d: L([[RX, TOP], [RX, BOT]]) }, g);
+  sv('path', { class: 'w', d: L([[LX, TOP], [MX, TOP]]) }, g);
+  sv('path', { class: 'w', d: L([[LX, BOT], [MX, BOT]]) }, g);
+  for (const [x, y] of [[LX, ML], [RX, MR]]) { const [px, py] = P(x, y); sv('circle', { cx: px, cy: py, r: 3.5, fill: 'var(--wire)' }, g); }
+  const kindB = type === 'semi' ? 'dio' : 'scr';
+  const pos = { LT: [LX, 72], RT: [RX, 117], LB: [LX, 232], RB: [RX, 232] };
+  for (const k of ['LT', 'RT', 'LB', 'RB']) {
+    const [x, y] = P(...pos[k]); const kind = (k === 'LT' || k === 'RT') ? 'scr' : kindB;
+    const mirrored = T(0, 0)[0] > T(10, 0)[0];
+    devs[k] = device(g, x, y, dirU, kind, pre + k, names[k], (k[0] === 'L') !== mirrored ? -18 : 18, 4);
+  }
+  paths.A = L([[SX, SY - 15], [SX, ML], [LX, ML], [LX, TOP], [MX, TOP], [MX, BOT], [RX, BOT], [RX, MR], [SX, MR], [SX, SY + 15]]);
+  paths.B = L([[SX, SY + 15], [SX, MR], [RX, MR], [RX, TOP], [MX, TOP], [MX, BOT], [LX, BOT], [LX, ML], [SX, ML], [SX, SY - 15]]);
+  return { devs, paths };
 }
-function drawWaves(p) {
-  const s = $('wave'); s.textContent = '';
-  const L = 46, R = 590, X = th => L + th / (4 * PI) * (R - L);
-  const W = waves(mode, p.al, conv);
-  const rows = mode === 'half'
-    ? [['vs, va', 'v'], ['ig', 'g'], ['iQ, is', 'iQa'], ['iD', 'iD']]
-    : mode === 'semi'
-      ? [['vs, va', 'v'], ['ig1, ig2', 'g'], ['iQ1,D1', 'iQa'], ['iQ2,D2', 'iQb'], ['iD', 'iD'], ['is', 'is']]
-      : [['vs, va', 'v'], ['ig1, ig2', 'g'], [mode === 'dual' ? 'iQ (pair 1)' : 'iQ1,2', 'iQa'], [mode === 'dual' ? 'iQ (pair 2)' : 'iQ3,4', 'iQb'], ['is', 'is']];
-  const top = 14, hV = 120, hI = (470 - top - hV - 30) / (rows.length - 1);
-  let y0 = top;
-  rows.forEach(([lab, k], ri) => {
-    const h = ri === 0 ? hV : hI - 8, mid = k === 'v' || k === 'is' ? y0 + h / 2 : y0 + h - 4, amp = k === 'v' ? h / 2 - 6 : k === 'is' ? h / 2 - 6 : h - 12;
-    el('line', { x1: L, y1: mid, x2: R, y2: mid, stroke: 'var(--line)' }, s);
-    txt(s, L - 4, y0 + 12, lab, { 'text-anchor': 'end', 'font-size': 10 });
-    for (let j = 1; j <= 4; j++) { const x = X(j * PI); el('line', { x1: x, y1: y0, x2: x, y2: y0 + h, stroke: 'var(--line)', 'stroke-dasharray': '2 3' }, s); if (ri === rows.length - 1) txt(s, x, 466, j + 'π', { 'text-anchor': 'middle', 'font-size': 10 }); }
-    if (k === 'v') {
-      let d1 = '', d2 = '';
-      W.forEach((q, i) => { d1 += (i ? 'L' : 'M') + X(q.th) + ',' + (mid - q.vs * amp); d2 += (i ? 'L' : 'M') + X(q.th) + ',' + (mid - q.va * amp); });
-      el('path', { d: d1, fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.2 }, s);
-      el('path', { d: d2, fill: 'none', stroke: 'var(--teal)', 'stroke-width': 2.6 }, s);
-      const avg = W.reduce((a, q) => a + q.va, 0) / W.length;
-      el('line', { x1: L, y1: mid - avg * amp, x2: R, y2: mid - avg * amp, stroke: 'var(--teal)', 'stroke-dasharray': '6 4' }, s);
-      txt(s, R, mid - avg * amp - 4, 'Va avg', { 'text-anchor': 'end', fill: 'var(--teal)', 'font-size': 10 });
-    } else if (k === 'g') {
-      const a = rad(p.al), fire = mode === 'half' ? [a, 2 * PI + a] : [a, PI + a, 2 * PI + a, 3 * PI + a];
-      fire.forEach((th, i) => { const x = X(th); el('path', { d: `M${x},${mid} L${x},${mid - amp} Q${x + 4},${mid - 2} ${x + 14},${mid}`, fill: 'none', stroke: 'var(--mark)', 'stroke-width': 2 }, s); if (i < 2) txt(s, x + 3, mid - amp + 2, i ? 'α' : 'α', { 'font-size': 11, fill: 'var(--mark)' }); });
-    } else {
-      let d = '';
-      W.forEach((q, i) => { d += (i ? 'L' : 'M') + X(q.th) + ',' + (mid - q[k] * amp); });
-      el('path', { d, fill: 'none', stroke: 'var(--mark)', 'stroke-width': 2 }, s);
-    }
-    y0 += h + 8;
-  });
-  txt(s, R, 466, 'ωt', { 'text-anchor': 'start', 'font-size': 10 });
+function motor(g, MX) {
+  const { TOP, BOT } = G;
+  sv('path', { class: 'w', d: `M${MX} ${TOP} L${MX} 56` }, g); coilV(g, MX, 56, 4, 6); sv('path', { class: 'w', d: `M${MX} 104 L${MX} 141 M${MX} 189 L${MX} ${BOT}` }, g);
+  sv('text', { x: MX + 12, y: 84, class: 'lbl' }, g, 'L');
+  sv('circle', { cx: MX, cy: 165, r: 24, class: 'mot' }, g);
+  sv('text', { x: MX, y: 171, 'text-anchor': 'middle', class: 'lbl', 'font-size': 15 }, g, 'M');
+  sv('text', { x: MX + 30, y: 150, class: 'lbl m' }, g, 'A1');
+  sv('text', { x: MX + 30, y: 192, class: 'lbl m' }, g, 'A2');
 }
-
-// ---------- circuit sketch ----------
-function drawCirc() {
-  const s = $('circ'); s.textContent = '';
-  const box = (x, y, w, h, t) => { el('rect', { x, y, width: w, height: h, rx: 6, fill: 'var(--teal-soft)', stroke: 'var(--teal)' }, s); txt(s, x + w / 2, y + h / 2 + 4, t, { 'text-anchor': 'middle', fill: 'var(--fg)', 'font-size': 12 }); };
-  el('circle', { cx: 30, cy: 100, r: 16, fill: 'none', stroke: 'var(--fg)' }, s); txt(s, 30, 104, '~', { 'text-anchor': 'middle', 'font-size': 16, fill: 'var(--fg)' }); txt(s, 30, 132, 'Vs', { 'text-anchor': 'middle' });
-  const names = { half: 'H.W. converter + D', semi: 'Semi-converter', full: 'Full converter', dual: conv === 1 ? 'Converter 1 (on)' : 'Converter 2 (on)' };
-  box(80, 70, 140, 60, names[mode]);
-  el('path', { d: 'M46,100 L80,100', stroke: 'var(--fg)', fill: 'none' }, s);
-  el('path', { d: 'M220,85 L300,85 L300,60 M220,115 L300,115 L300,140', stroke: 'var(--fg)', fill: 'none' }, s);
-  el('path', { d: 'M300,60 q8,5 0,10 q8,5 0,10 q8,5 0,10', stroke: 'var(--fg)', fill: 'none' }, s); txt(s, 312, 76, 'L');
-  el('circle', { cx: 300, cy: 115, r: 20, fill: 'var(--surface)', stroke: 'var(--fg)', 'stroke-width': 2 }, s); txt(s, 300, 119, 'M', { 'text-anchor': 'middle', 'font-size': 14, fill: 'var(--fg)' });
-  el('path', { d: 'M300,90 L300,95', stroke: 'var(--fg)' }, s);
-  box(340, 160, 110, 44, MODES[mode].fld === 'semi' ? 'Field: semi' : 'Field: full');
-  el('path', { d: 'M300,135 L300,182 L340,182', stroke: 'var(--fg)', fill: 'none', 'stroke-dasharray': '4 3' }, s);
-  txt(s, 240, 76, 'ia →', { fill: 'var(--mark)' }); txt(s, 360, 152, 'if', { fill: 'var(--mark)' });
+function field(g, x, y, lab) {
+  sv('path', { class: 'w', d: `M${x} ${y + 30} L${x} ${y} L${x + 14} ${y}` }, g);
+  let d = `M${x + 14} ${y}`; for (let k = 0; k < 4; k++) d += ' a6 6 0 0 1 12 0'; sv('path', { class: 'w', d }, g);
+  sv('path', { class: 'w', d: `M${x + 62} ${y} L${x + 76} ${y} L${x + 76} ${y + 30}` }, g);
+  sv('rect', { x: x - 12, y: y + 30, width: 100, height: 34, rx: 4, class: 'box' }, g);
+  sv('text', { x: x + 38, y: y + 52, 'text-anchor': 'middle', class: 'lbl', 'font-size': 12 }, g, lab);
+  sv('text', { x: x + 38, y: y - 10, 'text-anchor': 'middle', class: 'lbl m' }, g, 'ملفات المجال  If');
 }
-
-// ---------- lab table ----------
-function drawLab() {
-  const p = params(), t = $('lab'); t.textContent = '';
-  const angles = [180, 150, 120, 90, 60, 45, 30, 0];
-  const show = mode === 'semi' || mode === 'full';
-  $('labNote').textContent = mode === 'semi' ? 'التجربة الثانية — الجدول (2-1): موحد كامل الموجة نصف محكوم.' : mode === 'full' ? 'التجربة الثالثة — الجدول (3-1): موحد كامل الموجة محكوم كلياً.' : 'الجدول متاح لنوعي الموحد في التجربتين الثانية والثالثة.';
-  if (!show) return;
-  const head = document.createElement('tr'); t.appendChild(head); ['α (°)', 'Va (V)', 'Ia (A)', 'n (rpm)'].forEach(h => { const th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
-  angles.forEach(al => {
-    const r = solve(Object.assign({}, p, { al, rev: false }));
-    const tr = document.createElement('tr'); const stop = r.n <= 0;
-    [al, f(r.Va, 1), stop ? '—' : f(r.Ia, 2), stop ? 'لا يدور' : f(r.n, 0)].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
-    t.appendChild(tr);
-  });
+function buildCircuit() {
+  const m = S.mode, host = $('ckt'); host.innerHTML = '';
+  const dual = m === 'dual', W = dual ? 860 : 600, H = dual ? 384 : 292, MX = 430;
+  const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'دائرة ' + MODES[m].t }, host);
+  const gw = sv('g', {}, svg), gf = sv('g', {}, svg), gd = sv('g', {}, svg);
+  const flows = {}, devs = {};
+  const id = (x, y) => [x, y], mir = (x, y) => [W - x, 310 - y];
+  const type = dual ? 'full' : m;
+  const names = m === 'half' ? { Q: 'Q' } : m === 'semi' ? { LT: 'Q1', RT: 'Q2', LB: 'D2', RB: 'D1' } : { LT: 'Q1', RT: 'Q3', LB: 'Q4', RB: 'Q2' };
+  const b1 = bridge(gw, type, id, 'c1', names, MX);
+  Object.assign(devs, Object.fromEntries(Object.entries(b1.devs).map(([k, v]) => ['c1' + k, v])));
+  for (const k in b1.paths) flows['1' + k] = sv('path', { class: 'flow hidden', d: b1.paths[k] }, gf);
+  if (dual) {
+    const n2 = { LT: 'Q1′', RT: 'Q3′', LB: 'Q4′', RB: 'Q2′' };
+    const b2 = bridge(gw, 'full', mir, 'c2', n2, MX);
+    Object.assign(devs, Object.fromEntries(Object.entries(b2.devs).map(([k, v]) => ['c2' + k, v])));
+    for (const k in b2.paths) flows['2' + k] = sv('path', { class: 'flow hidden', d: b2.paths[k] }, gf);
+    sv('text', { x: 140, y: 335, 'text-anchor': 'middle', class: 'lbl' }, gw, 'الموحد الأول');
+    sv('text', { x: W - 140, y: 335, 'text-anchor': 'middle', class: 'lbl' }, gw, 'الموحد الثاني');
+  }
+  if (m === 'half' || m === 'semi') {
+    sv('path', { class: 'w', d: `M${G.FW} ${G.TOP} L${G.FW} ${G.BOT}` }, gw);
+    for (const y of [G.TOP, G.BOT]) sv('circle', { cx: G.FW, cy: y, r: 3.5, fill: 'var(--wire)' }, gw);
+    devs.FW = device(gd, G.FW, 155, 'u', 'dio', 'FW', 'D', 16, 4);
+    flows.F = sv('path', { class: 'flow hidden', d: poly([[G.FW, G.BOT], [G.FW, G.TOP], [MX, G.TOP], [MX, G.BOT], [G.FW, G.BOT]]) }, gf);
+  }
+  for (const y of [G.TOP, G.BOT]) sv('circle', { cx: MX, cy: y, r: 3.5, fill: 'var(--wire)' }, gw);
+  // devices drawn above the flow overlay; move them to the top group
+  for (const k in devs) gd.appendChild(devs[k]);
+  const gm = sv('g', {}, svg); motor(gm, MX);
+  if (dual) field(gm, MX - 38, 312, 'موحد محكوم للمجال');
+  else field(gm, 506, 110, m === 'full' ? 'موحد محكوم' : 'موحد نصف محكوم');
+  // labels va / ia
+  sv('text', { x: MX - 12, y: 28, 'text-anchor': 'end', class: 'lbl m' }, gw, 'ia →');
+  CK = { svg, flows, devs };
+  $('cktsub').textContent = MODES[m].sub;
 }
-
-function render() {
-  const p = params(), m = MODES[mode], r = solve(p);
-  $('h1').textContent = m.h1; $('lead').textContent = m.lead;
-  document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.m === mode ? 'page' : 'false'));
-  $('rowConv').hidden = mode !== 'dual'; $('rowRev').hidden = !(mode === 'full' || mode === 'dual');
-  $('al').max = mode === 'half' || mode === 'semi' ? 180 : 180;
-  $("oal").textContent = f(p.al, 1) + "°";
-  $('kVa').textContent = f(r.Va, 1); $('kIa').textContent = f(r.Ia, 2); $('kEb').textContent = f(r.Eb, 1);
-  $('kN').textContent = f(r.n, 0); $('kIf').textContent = f(r.If, 3); $('kP').textContent = f(r.P, 0);
-  const q = quadrant(r); ['q1', 'q2', 'q3', 'q4'].forEach((id, i) => $(id).className = q === i + 1 ? 'on' : '');
-  $('formula').textContent = m.eq + '    |    ω = (Va − Ia·Ra) / (Kv·If)';
-  $('calc').textContent =
-    `Vm = √2 × ${p.Vs} = ${f(r.Vm, 2)} V\n` +
-    `Vf = ${f(Math.abs(r.Vf), 2)} V  →  If = Vf / Rf = ${f(r.If, 3)} A\n` +
-    `Ia = T / (Kv·If) = ${p.TL} / (${p.Kv} × ${f(r.If, 3)}) = ${f(r.Ia, 2)} A\n` +
-    `Va = ${f(r.Va, 2)} V  →  Eb = Va − Ia·Ra = ${f(r.Eb, 2)} V\n` +
-    `ω = ${f(r.w, 2)} rad/s  →  n = ${f(r.n, 1)} rpm\n` +
-    `Pa = Va·Ia = ${f(r.P, 0)} W ${r.P < 0 ? '(القدرة تُرد إلى المصدر)' : ''}`;
-  let ex = `مصدر الشرح: ${m.fig}. `;
-  if (mode === 'full' || mode === 'dual') ex += p.al > 90 ? 'زاوية الإشعال أكبر من 90° فالجهد المتوسط سالب، والموحد يعمل عاكساً. ' : 'زاوية الإشعال أقل من 90° فالجهد المتوسط موجب، والموحد يعمل موحداً. ';
-  if (r.P < 0) ex += 'القدرة سالبة: المحرك يعمل مولداً ويعيد الطاقة إلى المصدر (فرملة بإعادة التوليد).';
-  else ex += 'القدرة موجبة: المصدر يغذي المحرك (تدوير).';
-  $('explain').textContent = ex;
-  $('warn').textContent = r.n < 0 && !p.rev && mode !== 'dual' ? 'الجهد المتوسط لا يكفي لتدوير المحرك مع هذا الحمل في الاتجاه الأمامي. في الحقيقة يتوقف المحرك ويصبح التيار متقطعاً؛ وللعمل عند α > 90° يلزم عكس قطبية المجال كما في المثال (3-2) ت.' : '';
-  drawCirc(); drawWaves(p); drawLab();
-}
-function setMode() { const h = location.hash.slice(1); mode = MODES[h] ? h : 'semi'; if (mode === 'half' || mode === 'semi') $('rev').checked = false; render(); }
-window.addEventListener('hashchange', setMode);
-['al', 'Vs', 'Ra', 'Kv', 'Rf', 'af', 'TL', 'rev'].forEach(id => $(id).addEventListener('input', render));
-$('c1').onclick = () => { conv = 1; $('c1').setAttribute('aria-pressed', 'true'); $('c2').setAttribute('aria-pressed', 'false'); render(); };
-$('c2').onclick = () => { conv = 2; $('c2').setAttribute('aria-pressed', 'true'); $('c1').setAttribute('aria-pressed', 'false'); render(); };
-const EX = {
-  '31a': { h: 'semi', Vs: 208, Ra: 0.1, Kv: 1.1, Rf: 150, af: 0, TL: 75, al: 82.3, rev: false },
-  '31b': { h: 'semi', Vs: 208, Ra: 0.1, Kv: 1.1, Rf: 150, af: 0, TL: 75, al: 0, rev: false },
-  '32a': { h: 'full', Vs: 440, Ra: 0.2, Kv: 1.35, Rf: 200, af: 0, TL: 133.65, al: 60, rev: false },
-  '32c': { h: 'full', Vs: 440, Ra: 0.2, Kv: 1.35, Rf: 200, af: 0, TL: 106.92, al: 117.4, rev: true },
+const ACTIVE = {
+  half: { A: ['c1Q'], F: ['FW'] },
+  semi: { A: ['c1LT', 'c1RB'], B: ['c1RT', 'c1LB'], F: ['FW'] },
+  full: { A: ['c1LT', 'c1RB'], B: ['c1RT', 'c1LB'] }
 };
-document.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => {
-  const e = EX[b.dataset.ex];
-  ['Vs', 'Ra', 'Kv', 'Rf', 'af', 'TL', 'al'].forEach(k => $(k).value = e[k]); $('rev').checked = e.rev;
-  if (location.hash !== '#' + e.h) location.hash = e.h; else render();
-});
-setMode();
+const DEVNAME = { c1Q: 'Q', FW: 'D' };
+function devName(id) {
+  if (DEVNAME[id]) return DEVNAME[id];
+  const el = CK.devs[id]; return el ? el.querySelector('text').textContent : id;
+}
+function activeDevs(st) {
+  if (S.mode === 'dual') { const p = 'c' + S.conv; return st === 'A' ? [p + 'LT', p + 'RB'] : st === 'B' ? [p + 'RT', p + 'LB'] : []; }
+  return (ACTIVE[S.mode][st] || []);
+}
+
+/* ------------------------------------------------------------ waves ------ */
+const WV = { W: 680, x0: 46, x1: 668 };
+let WVel = null;
+function rowsFor() {
+  const m = S.mode;
+  if (m === 'half') return [['Q', 'A'], ['D', 'F']];
+  if (m === 'semi') return [['Q1 , D1', 'A'], ['Q2 , D2', 'B'], ['D', 'F']];
+  const s = m === 'dual' && S.conv === 2 ? '′' : '';
+  return [[`Q1${s} , Q2${s}`, 'A'], [`Q3${s} , Q4${s}`, 'B']];
+}
+function drawWaves() {
+  const host = $('wv'); host.innerHTML = '';
+  const rows = rowsFor(), rec = R.rec, Vm = R.Vm;
+  const vTop = 14, vH = 150, iTop = vTop + vH + 18, iH = 90, rTop = iTop + iH + 18, rH = 24;
+  const H = rTop + rows.length * rH + 22;
+  const svg = sv('svg', { viewBox: `0 0 ${WV.W} ${H}`, role: 'img', 'aria-label': 'موجات الجهد والتيار' }, host);
+  const X = d => WV.x0 + (WV.x1 - WV.x0) * d / 720;
+  const vy = v => vTop + vH / 2 - v / (Vm * 1.08) * vH / 2;
+  const imax = Math.max(1e-6, ...rec.i.map(Math.abs)) * 1.15;
+  const neg = rec.i.some(x => x < -1e-9);
+  const iy = v => neg ? iTop + iH / 2 - v / imax * iH / 2 : iTop + iH - v / imax * iH;
+  // grid
+  for (let d = 0; d <= 720; d += 90) sv('line', { x1: X(d), x2: X(d), y1: vTop, y2: rTop + rows.length * rH, stroke: 'var(--grid)', 'stroke-width': 1 }, svg);
+  for (let d = 0; d <= 720; d += 180) sv('text', { x: X(d), y: H - 6, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--muted)' }, svg, d === 0 ? '0' : (d / 180) + 'π');
+  sv('line', { x1: X(0), x2: X(720), y1: vy(0), y2: vy(0), stroke: 'var(--line)' }, svg);
+  sv('line', { x1: X(0), x2: X(720), y1: iy(0), y2: iy(0), stroke: 'var(--line)' }, svg);
+  const series = (arr, f) => { let d = ''; for (let k = 0; k < 720; k++) { const v = arr[k % 360]; d += (k ? 'L' : 'M') + X(k).toFixed(1) + ' ' + f(v).toFixed(1); } return d; };
+  sv('path', { d: series(rec.vs, vy), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.2 }, svg);
+  sv('path', { d: series(rec.vs.map(v => -v), vy), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1, 'stroke-dasharray': '3 4', opacity: .6 }, svg);
+  sv('line', { x1: X(0), x2: X(720), y1: vy(R.Eb), y2: vy(R.Eb), stroke: 'var(--blue)', 'stroke-width': 1.5, 'stroke-dasharray': '6 4' }, svg);
+  sv('line', { x1: X(0), x2: X(720), y1: vy(R.Va), y2: vy(R.Va), stroke: 'var(--teal)', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, svg);
+  sv('path', { d: series(rec.va, vy), fill: 'none', stroke: 'var(--teal)', 'stroke-width': 2.4 }, svg);
+  sv('text', { x: 4, y: vTop + 10, 'font-size': 13, fill: 'var(--muted)' }, svg, 'v');
+  sv('text', { x: WV.x1, y: vy(R.Va) - 4, 'text-anchor': 'end', 'font-size': 13, fill: 'var(--teal)' }, svg, 'Va(avg)');
+  sv('text', { x: WV.x0 + 4, y: vy(R.Eb) - 4, 'font-size': 13, fill: 'var(--blue)' }, svg, 'Eb');
+  sv('path', { d: series(rec.i, iy), fill: 'none', stroke: 'var(--mark)', 'stroke-width': 2.2 }, svg);
+  sv('text', { x: 4, y: iTop + 10, 'font-size': 13, fill: 'var(--muted)' }, svg, 'ia');
+  sv('text', { x: WV.x0 - 4, y: iy(imax / 1.15) + 4, 'text-anchor': 'end', 'font-size': 12, fill: 'var(--muted)' }, svg, fmt(imax / 1.15 * (neg ? 1 : 1), 0));
+  // conduction rows with gate pulses
+  const a = S.alpha;
+  rows.forEach(([lab, st], j) => {
+    const y = rTop + j * rH;
+    sv('text', { x: WV.x0 - 4, y: y + 15, 'text-anchor': 'end', 'font-size': 12.5, fill: 'var(--fg)' }, svg, lab);
+    sv('line', { x1: X(0), x2: X(720), y1: y + rH - 4, y2: y + rH - 4, stroke: 'var(--line)' }, svg);
+    let k = 0;
+    while (k < 720) {
+      if (rec.st[k % 360] === st) { const k0 = k; while (k < 720 && rec.st[k % 360] === st) k++; sv('rect', { x: X(k0), y: y + 4, width: Math.max(1, X(k) - X(k0)), height: rH - 9, rx: 2, fill: 'var(--mark)', opacity: .85 }, svg); }
+      else k++;
+    }
+    if (st === 'A' || st === 'B') {
+      for (const c of [0, 360]) {
+        const g0 = (st === 'A' ? a : a + 180) + c;
+        if (g0 < 720 && (S.mode !== 'half' || st === 'A') && !(st === 'A' && a >= 180)) sv('path', { d: `M${X(g0)} ${y + rH - 4} l-4 -8 l8 0 z`, fill: 'var(--teal)' }, svg);
+      }
+    }
+  });
+  const cur = sv('line', { x1: X(0), x2: X(0), y1: vTop - 6, y2: rTop + rows.length * rH, stroke: 'var(--fg)', 'stroke-width': 1.2, opacity: .7 }, svg);
+  WVel = { cur, X };
+}
+
+/* ------------------------------------------------------------ quadrants -- */
+function quad(svg, q, labels) {
+  svg.innerHTML = '';
+  const cells = [[90, 0, 1], [0, 0, 2], [0, 75, 3], [90, 75, 4]];
+  for (const [x, y, n] of cells) {
+    sv('rect', { x: x + 1, y: y + 1, width: 88, height: 73, class: 'qcell' + (q === n ? ' on' : '') }, svg);
+    const [a, b] = labels[n];
+    sv('text', { x: x + 45, y: y + 32, 'text-anchor': 'middle', class: 'qtxt' + (q === n ? ' on' : '') }, svg, a);
+    sv('text', { x: x + 45, y: y + 50, 'text-anchor': 'middle', class: 'qtxt' + (q === n ? ' on' : '') }, svg, b);
+  }
+}
+const QTN = { 1: ['الربع الأول', 'تدوير أمامي'], 2: ['الربع الثاني', 'فرملة أمامية'], 3: ['الربع الثالث', 'تدوير عكسي'], 4: ['الربع الرابع', 'فرملة عكسية'] };
+const QVI = { 1: ['الربع الأول', 'تقويم'], 2: ['الربع الثاني', 'تحويل عكسي'], 3: ['الربع الثالث', 'تقويم'], 4: ['الربع الرابع', 'تحويل عكسي'] };
+
+/* ------------------------------------------------------------ update ----- */
+function readInputs() { for (const k of ['Vs', 'f', 'Ra', 'Kv', 'Rf', 'af', 'TL']) { const v = parseFloat($(k).value); if (isFinite(v)) S[k] = v; } }
+function writeInputs() { for (const k of ['Vs', 'f', 'Ra', 'Kv', 'Rf', 'af', 'TL']) $(k).value = S[k]; }
+function recompute() {
+  R = ENG.compute(S);
+  const m = S.mode, cf = m === 'full' || m === 'dual';
+  $('convRow').hidden = m !== 'dual'; $('opRow').hidden = !cf; $('frRow').hidden = !cf;
+  $('nGenRow').hidden = !(cf && S.op === 'gen'); $('tlLab').hidden = cf && S.op === 'gen';
+  $('laRow').style.opacity = S.ideal ? .45 : 1; $('la').disabled = S.ideal;
+  $('alo').textContent = S.alpha.toFixed(1) + '°'; $('lao').textContent = S.La + ' mH'; $('ngo').textContent = S.nGen + ' rpm';
+  const K = [['Va (V)', fmt(R.Va, 1)], ['Ia (A)', fmt(R.Ia, 2)], ['Eb (V)', fmt(R.Eb, 1)], ['n (rpm)', fmt(R.n, 0)], ['Td (N·m)', fmt(R.Td, 2)], ['Pa (W)', fmt(R.Pa, 0)], ['If (A)', fmt(R.If, 3)], ['Vf (V)', fmt(R.Vf, 1)], ['التيار', R.cont ? 'متصل' : 'متقطع']];
+  $('kpi').innerHTML = K.map(([a, b]) => `<div><b>${b}</b><span>${a}</span></div>`).join('');
+  $('vform').textContent = fmt(R.Vform, 2) + ' V'; $('vsim').textContent = fmt(R.Va, 2) + ' V';
+  const st = $('status'); st.className = 'status';
+  if (R.warn === 'nofield') { st.className = 'status bad'; st.textContent = 'تحذير: لا يوجد تيار مجال. فقد المجال والمنتج موصول يرفع السرعة إلى قيمة خطرة؛ لذلك يوصل المجال أولاً ويفصل آخراً.'; }
+  else if (R.status === 'stall') { st.className = 'status warn'; st.textContent = 'المحرك لا يدور: الجهد المتوسط لا يكفي لتمرير التيار اللازم لعزم الحمل. ' + (cf && S.alpha > 90 ? 'الثايرستور لا يمرر تياراً سالباً، فالجهد السالب لا يدير المحرك؛ إعادة التوليد تحتاج أن تنعكس Eb.' : ''); }
+  else if (R.status === 'nocurrent') { st.className = 'status warn'; st.textContent = 'لا يمر تيار في هذا الموحد: القوة الدافعة المضادة أكبر من الجهد الذي يستطيع الموحد تمريره في هذا الاتجاه. غيّر α أو السرعة.'; }
+  else {
+    const q = QTN[R.qTN] ? QTN[R.qTN].join(' — ') : '';
+    st.textContent = (R.Pa >= 0 ? 'القدرة من المصدر إلى المحرك (تقويم). ' : 'القدرة تعود من الآلة إلى المصدر (تحويل عكسي / إعادة توليد). ') + q + (S.ideal ? '' : (R.cont ? ' — التيار متصل.' : ' — التيار متقطع: يظهر Eb على المنتج أثناء انعدام التيار.'));
+  }
+  quad($('qTN'), R.qTN, QTN); quad($('qVI'), R.qVI, QVI);
+  $('fieldNote').textContent = `المجال: ${R.fieldType === 'semi' ? 'موحد نصف محكوم Vf = (Vm/π)(1 + cos αf)' : 'موحد محكوم Vf = (2Vm/π) cos αf'} = ${fmt(R.Vf, 2)} V، If = Vf/Rf = ${fmt(Math.abs(R.If), 3)} A.`;
+  drawWaves(); frame(); checkTasks(); scheduleLab();
+}
+function frame() {
+  const th = Math.floor(S.theta) % 720, k = th % 360;
+  $('th').value = th; $('tho').textContent = th + '°';
+  const st = R.rec.st[k], i = R.rec.i[k], va = R.rec.va[k], vs = R.rec.vs[k];
+  const act = activeDevs(st);
+  for (const id in CK.devs) CK.devs[id].classList.toggle('on', act.includes(id) && Math.abs(i) > 1e-6);
+  const fkey = S.mode === 'dual' ? (st === 'A' || st === 'B' ? S.conv + st : '') : (st === 'F' ? 'F' : st === 'A' || st === 'B' ? '1' + st : '');
+  const imax = Math.max(1e-6, ...R.rec.i.map(Math.abs));
+  for (const k2 in CK.flows) {
+    const on = k2 === fkey && Math.abs(i) > 1e-6, el = CK.flows[k2];
+    el.classList.toggle('hidden', !on);
+    if (on) el.style.animationDuration = (0.35 + 1.4 * (1 - Math.min(1, Math.abs(i) / imax))).toFixed(2) + 's';
+    if (on) el.style.animationPlayState = S.playing ? 'running' : 'paused';
+  }
+  const names = act.filter(() => Math.abs(i) > 1e-6).map(devName);
+  $('now').innerHTML = names.length ? `العناصر الموصلة الآن: <b>${names.join('، ')}</b>${st === 'F' ? ' — التيار يدور في المنتج عبر دايود الحذافة والمصدر منفصل' : ''}` : 'لا يوجد عنصر موصل الآن: التيار صفر، والجهد على أطراف المنتج يساوي Eb.';
+  $('inst').innerHTML = [['ωt', th + '°'], ['vs (V)', fmt(vs, 0)], ['va (V)', fmt(va, 0)], ['ia (A)', fmt(i, 1)]].map(([a, b]) => `<div><b>${b}</b><span>${a}</span></div>`).join('');
+  if (WVel) { const x = WVel.X(th); WVel.cur.setAttribute('x1', x); WVel.cur.setAttribute('x2', x); }
+}
+let last = 0;
+function loop(t) {
+  if (S.playing) { const dt = last ? (t - last) / 1000 : 0; S.theta = (S.theta + dt * 90) % 720; frame(); }
+  last = t; requestAnimationFrame(loop);
+}
+
+/* ------------------------------------------------------------ tasks ------ */
+const r1 = x => Math.round(x * 10) / 10;
+const TASKS = {
+  half: [
+    { obj: '3-4', q: 'كم أقصى جهد متوسط يعطيه موحد نصف الموجة، مقارنة بالموحد كامل الموجة نصف المحكوم بنفس المصدر؟', o: ['يساويه', 'نصفه', 'ضعفه', 'ربعه'], a: 1,
+      act: 'اضبط α على 0° مع افتراض التيار المتصل، واقرأ Va.', chk: () => S.alpha < 0.5 && S.ideal,
+      ex: () => `Va = Vm/π = ${fmt(R.Va, 1)} V، بينما يعطي كامل الموجة 2Vm/π = ${fmt(2 * R.Va, 1)} V: نبضة واحدة في الدورة بدل نبضتين.` },
+    { obj: '3-4', q: 'عندما يصبح جهد المصدر سالباً، أي عنصر يحمل تيار المنتج؟', o: ['الثايرستور Q', 'دايود الحذافة D', 'لا يمر تيار', 'المصدر نفسه'], a: 1,
+      act: 'أوقف الحركة واسحب ωt إلى زاوية بين 180° و360°، ثم انظر إلى العنصر المضيء ومسار التيار.', chk: () => { const k = Math.floor(S.theta) % 360; return k > 182 && R.rec.st[k] === 'F'; },
+      ex: () => 'عند انعكاس جهد المصدر ينحاز D أمامياً فيمر تيار المنتج عبره ويُطفأ Q، فيصبح va = 0 ولا يظهر الجزء السالب على المنتج.' }
+  ],
+  semi: [
+    { obj: '3-4', q: 'عند α = 90° كم يكون الجهد المتوسط على المنتج مقارنة بأقصى قيمة له (عند α = 0°)؟', o: ['صفر', '50%', '71%', '100%'], a: 1,
+      act: 'اضبط α على 90° مع افتراض التيار المتصل.', chk: () => Math.abs(S.alpha - 90) < 0.6 && S.ideal,
+      ex: () => `(1 + cos 90°)/2 = 0.5، أي Va = ${fmt(R.Va, 1)} V من أصل ${fmt(2 * R.Va, 1)} V.` },
+    { obj: '3-4', q: 'بعد مرور جهد المصدر بالصفر وقبل نبضة الإشعال التالية، كم يكون جهد المنتج va؟', o: ['سالباً', 'صفراً', 'مساوياً لـ Eb', 'مساوياً لـ Vm'], a: 1,
+      act: 'اضبط α على 90°، وأوقف الحركة عند ωt بين 0° و90° (أو بين 180° و270°)، واقرأ va والعنصر الموصل.', chk: () => { const k = Math.floor(S.theta) % 360; return R.rec.st[k] === 'F'; },
+      ex: () => 'دايود الحذافة D يقصر المنتج في هذه الفترة فيصبح va = 0، والتيار مستمر بفعل محاثة المنتج، والمصدر لا يغذي المنتج.' },
+    { obj: '3-5', q: 'في المثال (3-1) أ: احسب زاوية الإشعال αa في دائرة المنتج، ثم أدخلها.', num: 82.3, tol: 1, unit: '°',
+      after: () => applyExample({ ...EX31, alpha: 82.3 }), ex: () => `صحيح. ضبط المحاكي α = 82.3° ببيانات المثال: n = ${fmt(R.n, 0)} rpm، Ia = ${fmt(R.Ia, 2)} A، Eb = ${fmt(R.Eb, 2)} V.` },
+    { obj: 'م1-5', q: 'في المعمل لا تكون محاثة المنتج كبيرة جداً، والمحرك يعمل بحمل خفيف. عند α = 150°، هل تتوقع أن يساوي Va المقيس قيمته من المعادلة؟', o: ['يساويها', 'أكبر منها', 'أصغر منها'], a: 1,
+      act: 'ألغِ افتراض التيار المتصل، واجعل L = 5 mH وعزم الحمل 5 N·m، ثم ارفع α إلى 150°.', chk: () => !S.ideal && S.alpha >= 140 && !R.cont,
+      ex: () => `المعادلة تعطي ${fmt(R.Vform, 1)} V والمحاكي ${fmt(R.Va, 1)} V. التيار متقطع، وأثناء انعدامه يظهر Eb على أطراف المنتج بدل الصفر، فيرتفع المتوسط. لهذا تكون قراءاتك عند الزوايا الكبيرة أعلى من المحسوب.` }
+  ],
+  full: [
+    { obj: '3-6', q: 'مع تيار متصل، ما إشارة الجهد المتوسط على المنتج عند α = 120°؟', o: ['موجبة', 'سالبة', 'صفر'], a: 1,
+      act: 'اختر «الحمل يدير الآلة» مع عكس المجال، واضبط α = 120° مع افتراض التيار المتصل.', chk: () => Math.abs(S.alpha - 120) < 1 && S.ideal,
+      ex: () => `Va = (2Vm/π) cos 120° = ${fmt(R.Vform, 1)} V. يستمر Q1 وQ2 في التوصيل بعد π بسبب محاثة المنتج، فيظهر الجزء السالب من جهد المصدر على المنتج.` },
+    { obj: '3-6', q: 'المحرك يدير حملاً عادياً والمجال لم يُعكس. ماذا يحدث إذا رفعت α إلى 120°؟', o: ['يدور عكسياً', 'يتوقف عن الدوران', 'يعيد الطاقة إلى المصدر'], a: 1,
+      act: 'اختر «المحرك يدير حملاً» وألغِ عكس المجال، ثم ارفع α إلى 120°.', chk: () => S.op === 'motor' && !S.fieldRev && S.alpha > 95 && Math.abs(R.n) < 1,
+      ex: () => 'لا يستطيع الثايرستور تمرير تيار سالب، والجهد المتوسط سالب، فلا يتولد عزم يدير الحمل. إعادة التوليد تحتاج Eb معكوسة: بعكس المجال أو بحمل يدير الآلة، كما في المثال (3-2) ت.' },
+    { obj: '3-7', q: 'في المثال (3-2) ت: احسب زاوية الإشعال αa التي تحافظ على Ia = 40 A بعد عكس المجال، ثم أدخلها.', num: 117.36, tol: 1, unit: '°',
+      after: () => applyExample({ ...EX32, alpha: 117.36, op: 'gen', nGen: 678.8, fieldRev: true }), ex: () => `صحيح. ضبط المحاكي الحالة: Va = ${fmt(R.Va, 2)} V، Ia = ${fmt(R.Ia, 2)} A، والقدرة المستردة Pa = ${fmt(R.Pa, 0)} W (سالبة: تعود إلى المصدر).` },
+    { obj: 'م1-5', q: 'في التجربة الثالثة عند α = 120° والمحرك دون حمل، كيف تتوقع أن يظهر تيار المنتج على راسم الذبذبات؟', o: ['متصلاً', 'نبضات متقطعة', 'سالباً'], a: 1,
+      act: 'اختر «المحرك يدير حملاً» دون عكس المجال، وألغِ افتراض التيار المتصل، واجعل L = 5 mH وعزم الحمل 5 N·m، ثم α = 120°.', chk: () => !S.ideal && S.alpha > 95 && S.op === 'motor' && !R.cont,
+      ex: () => 'يمر التيار نبضات قصيرة لا تكفي لدوران المحرك، فتكون السرعة صفراً عند 90° وما فوقها في جدول التجربة الثالثة. هذا سلوك متوقع وليس خطأ توصيل.' }
+  ],
+  dual: [
+    { obj: '3-11', q: 'تريد تدوير المحرك عكسياً (الربع الثالث). أي موحد يعمل؟ وكيف تكون α؟', o: ['الأول، α < 90°', 'الأول، α > 90°', 'الثاني، α < 90°', 'الثاني، α > 90°'], a: 2,
+      act: 'اختر الموحد الثاني و«المحرك يدير حملاً» واجعل α = 45°.', chk: () => S.conv === 2 && S.op === 'motor' && R.qTN === 3,
+      ex: () => `الموحد الثاني يمرر تياراً سالباً وجهداً سالباً عند α < 90°: n = ${fmt(R.n, 0)} rpm، Td = ${fmt(R.Td, 1)} N·m.` },
+    { obj: '3-11', q: 'المحرك يدور أمامياً والحمل يدفعه (نزول حمل في رافعة). أي موحد يستقبل الطاقة؟ وكيف تكون α؟', o: ['الأول، α < 90°', 'الأول، α > 90°', 'الثاني، α < 90°', 'الثاني، α > 90°'], a: 3,
+      act: 'اختر الموحد الثاني و«الحمل يدير الآلة» بسرعة موجبة، ثم غيّر α فوق 90° حتى تصبح القدرة سالبة.', chk: () => S.conv === 2 && S.op === 'gen' && R.qTN === 2 && R.Pa < 0,
+      ex: () => `الربع الثاني (فرملة أمامية): Ia سالب وVa موجب، فالقدرة ${fmt(R.Pa, 0)} W تعود إلى المصدر.` },
+    { obj: '3-12', q: 'لماذا لا يكفي موحد محكوم كلياً واحد لعكس اتجاه الدوران مع الفرملة الكهربائية، دون عكس المجال؟', o: ['لأنه لا يعطي جهداً سالباً', 'لأن تياره لا ينعكس', 'لأنه يحتاج دايود حذافة'], a: 1,
+      ex: () => 'الموحد المحكوم كلياً يعكس الجهد ولا يعكس التيار، فيعمل في ربعين فقط. الموحد الثاني المعاكس يوفر التيار السالب للربعين الآخرين.' }
+  ]
+};
+const taskState = {};
+function buildTasks() {
+  const host = $('tasks'); host.innerHTML = '';
+  TASKS[S.mode].forEach((t, j) => {
+    const key = S.mode + j; const ts = taskState[key] || (taskState[key] = {});
+    const el = document.createElement('div'); el.className = 'task'; el.dataset.key = key;
+    el.innerHTML = `<h3><b>${t.obj}</b>المهمة ${j + 1}<span class="ok" hidden>✓ تحقّقت</span></h3><p>${t.q}</p>`;
+    if (t.num != null) {
+      const box = document.createElement('div'); box.className = 'numin';
+      box.innerHTML = `<input type="number" inputmode="decimal" step="any" aria-label="إجابتك"><span>${t.unit}</span><button class="btn sm" type="button">تحقّق</button>`;
+      const fb = document.createElement('p'); fb.className = 'fb';
+      box.querySelector('button').onclick = () => {
+        const v = parseFloat(box.querySelector('input').value);
+        if (!isFinite(v)) { fb.className = 'fb bad'; fb.textContent = 'أدخل رقماً.'; return; }
+        if (Math.abs(v - t.num) <= t.tol) { t.after(); ts.done = true; fb.className = 'fb ok'; fb.textContent = t.ex(); mark(el, ts); }
+        else { fb.className = 'fb bad'; fb.textContent = `ليست صحيحة بعد. راجع الخطوات: أوجد Va = Eb + Ia·Ra ثم عوّض في معادلة الموحد لتجد cos α.`; }
+      };
+      el.append(box, fb);
+    } else {
+      const opts = document.createElement('div'); opts.className = 'opts';
+      const fb = document.createElement('p'); fb.className = 'fb';
+      const act = document.createElement('div'); act.className = 'act'; act.hidden = true;
+      t.o.forEach((o, k) => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = o;
+        b.onclick = () => {
+          opts.querySelectorAll('button').forEach(x => x.classList.remove('right', 'wrong'));
+          b.classList.add(k === t.a ? 'right' : 'wrong');
+          ts.pred = k;
+          fb.className = 'fb ' + (k === t.a ? 'ok' : 'bad');
+          fb.textContent = k === t.a ? 'توقعك صحيح. نفّذ الآن لتتأكد بنفسك.' : 'سجّل توقعك، ونفّذ الآن لترى ما يحدث فعلاً.';
+          act.hidden = false;
+          if (!t.chk) { ts.done = true; act.innerHTML = `<p>${t.ex()}</p>`; mark(el, ts); }
+        };
+        opts.appendChild(b);
+      });
+      if (t.chk) act.innerHTML = `<p><b>نفّذ:</b> ${t.act}</p><p class="res note">ستظهر النتيجة هنا عندما تنفّذ المطلوب.</p>`;
+      el.append(opts, fb, act);
+      el._t = t; el._act = act;
+    }
+    host.appendChild(el);
+    if (ts.done) mark(el, ts);
+  });
+}
+function mark(el, ts) { el.classList.add('done'); el.querySelector('.ok').hidden = false; }
+function checkTasks() {
+  document.querySelectorAll('#tasks .task').forEach(el => {
+    const t = el._t; if (!t || !t.chk || el._act.hidden) return;
+    const ts = taskState[el.dataset.key];
+    if (t.chk()) { ts.done = true; el._act.querySelector('.res').textContent = t.ex(); el._act.querySelector('.res').className = 'res fb ok'; mark(el, ts); }
+  });
+}
+
+/* ------------------------------------------------------------ lab -------- */
+const LAB_A = [180, 150, 120, 90, 60, 45, 30, 0];
+let labTimer = 0, labExp = [];
+function labKey() { return 'sp242-lab-' + S.mode; }
+function labLoad() { try { return JSON.parse(localStorage.getItem(labKey()) || '{}'); } catch (e) { return {}; } }
+function labSave(d) { try { localStorage.setItem(labKey(), JSON.stringify(d)); } catch (e) { } }
+function buildLab() {
+  const p = $('labPanel'), on = S.mode === 'semi' || S.mode === 'full';
+  p.hidden = !on; if (!on) return;
+  $('labsub').textContent = MODES[S.mode].lab;
+  const d = labLoad();
+  let h = '<thead><tr><th>α (°)</th><th>Va متوقع (V)</th><th>N متوقع (rpm)</th><th>Va مقيس</th><th>Ia مقيس</th><th>N مقيس</th><th>خطأ Va</th><th>خطأ N</th></tr></thead><tbody>';
+  for (const a of LAB_A) {
+    const r = d[a] || {};
+    h += `<tr data-a="${a}"><td>${a}</td><td class="e" data-k="ev"></td><td class="e" data-k="en"></td>` +
+      ['va', 'ia', 'n'].map(k => `<td><input type="number" inputmode="decimal" step="any" data-k="${k}" value="${r[k] ?? ''}" aria-label="${k} عند ${a}°"></td>`).join('') +
+      `<td class="err" data-k="xv"></td><td class="err" data-k="xn"></td></tr>`;
+  }
+  $('lab').innerHTML = h + '</tbody>';
+  $('lab').querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
+    const dd = labLoad(), a = inp.closest('tr').dataset.a; dd[a] = dd[a] || {}; dd[a][inp.dataset.k] = inp.value; labSave(dd); fillLab();
+  }));
+  scheduleLab();
+}
+function scheduleLab() { if ($('labPanel').hidden) return; clearTimeout(labTimer); labTimer = setTimeout(runLab, 120); }
+function runLab() {
+  const base = { ...S, op: 'motor', fieldRev: false, conv: 1 };
+  labExp = LAB_A.map(a => { const r = ENG.compute({ ...base, alpha: a }); return { a, va: r.Va, n: r.n }; });
+  fillLab();
+}
+function fillLab() {
+  const d = labLoad();
+  const rows = [...$('lab').querySelectorAll('tbody tr')];
+  rows.forEach((tr, j) => {
+    const e = labExp[j]; if (!e) return; const m = d[e.a] || {};
+    tr.querySelector('[data-k=ev]').textContent = fmt(e.va, 1);
+    tr.querySelector('[data-k=en]').textContent = Math.abs(e.n) < 0.5 ? 'لا يدور' : fmt(e.n, 0);
+    const err = (meas, exp, el) => {
+      const v = parseFloat(meas); if (!isFinite(v) || Math.abs(exp) < 1) { el.textContent = ''; el.classList.remove('hi'); return; }
+      const x = (v - exp) / Math.abs(exp) * 100; el.textContent = (x > 0 ? '+' : '') + x.toFixed(1) + '%'; el.classList.toggle('hi', Math.abs(x) > 10);
+    };
+    err(m.va, e.va, tr.querySelector('[data-k=xv]')); err(m.n, e.n, tr.querySelector('[data-k=xn]'));
+  });
+  chart($('chN'), 'n', 'N (rpm)', d); chart($('chV'), 'va', 'Va (V)', d);
+}
+function chart(svg, key, ylab, d) {
+  svg.innerHTML = '';
+  const L = 44, Rr = 310, T = 14, B = 172;
+  const meas = LAB_A.map(a => ({ a, v: parseFloat((d[a] || {})[key]) })).filter(p => isFinite(p.v));
+  const all = labExp.map(e => e[key === 'n' ? 'n' : 'va']).concat(meas.map(p => p.v));
+  let ymax = Math.max(1, ...all), ymin = Math.min(0, ...all);
+  const X = a => L + (180 - a) / 180 * (Rr - L), Y = v => B - (v - ymin) / (ymax - ymin) * (B - T);
+  for (let a = 0; a <= 180; a += 30) { sv('line', { x1: X(a), x2: X(a), y1: T, y2: B, stroke: 'var(--grid)' }, svg); sv('text', { x: X(a), y: B + 13, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--muted)' }, svg, a); }
+  for (let j = 0; j <= 4; j++) { const v = ymin + (ymax - ymin) * j / 4; sv('line', { x1: L, x2: Rr, y1: Y(v), y2: Y(v), stroke: 'var(--grid)' }, svg); sv('text', { x: L - 4, y: Y(v) + 3, 'text-anchor': 'end', 'font-size': 9.5, fill: 'var(--muted)' }, svg, v.toFixed(0)); }
+  sv('text', { x: Rr, y: B + 26, 'text-anchor': 'end', 'font-size': 10, fill: 'var(--muted)' }, svg, 'α (°) ← تناقص الزاوية');
+  sv('text', { x: 4, y: 10, 'font-size': 12.5, fill: 'var(--fg)', 'font-weight': 600 }, svg, ylab);
+  sv('path', { d: labExp.map((e, j) => (j ? 'L' : 'M') + X(e.a) + ' ' + Y(e[key === 'n' ? 'n' : 'va'])).join(' '), fill: 'none', stroke: 'var(--teal)', 'stroke-width': 2 }, svg);
+  for (const p of meas) sv('circle', { cx: X(p.a), cy: Y(p.v), r: 4, fill: 'var(--mark)' }, svg);
+}
+
+/* ------------------------------------------------------------ quiz ------- */
+const QUIZ = [
+  { obj: '3-4', q: 'لماذا لا يظهر جزء سالب من الجهد على المنتج في الموحد نصف المحكوم؟', o: ['لأن الثايرستورات تنطفئ عند الصفر', 'لأن دايود الحذافة والدايودات تقصر المنتج عند انعكاس الجهد', 'لأن ملف التنعيم يمنعه'], a: 1, e: 'عند انعكاس الجهد يمر التيار عبر دايود الحذافة (أو عبر ثايرستور ودايود في نفس الذراع) فيصبح va = 0.' },
+  { obj: '3-4', q: 'موحد نصف محكوم من مصدر 230 V: كم الجهد المتوسط عند α = 60°؟', o: ['155.3 V', '103.5 V', '207.1 V', '77.6 V'], a: 0, e: 'Va = (Vm/π)(1 + cos 60°) = (325.3/π)(1.5) = 155.3 V.' },
+  { obj: '3-5', q: 'محرك منفصل التغذية: Ia ثابت، وزادت Va. ماذا يحدث للسرعة؟', o: ['تقل', 'تزيد', 'لا تتغير'], a: 1, e: 'ω = (Va − Ia·Ra)/(Kv·If): زيادة Va مع ثبات Ia وIf تزيد Eb فتزيد السرعة.' },
+  { obj: '3-6', q: 'شرط إعادة التوليد بالموحد المحكوم كلياً:', o: ['α < 90° فقط', 'α > 90° مع Eb معكوسة', 'وجود دايود حذافة'], a: 1, e: 'يصبح Va سالباً عند α > 90°، ويبقى Ia موجباً فقط إذا انعكست Eb، فتكون القدرة Va·Ia سالبة وتعود إلى المصدر.' },
+  { obj: '3-7', q: 'Va = −182 V وIa = 40 A. كم القدرة، وما اتجاهها؟', o: ['+7280 W من المصدر', '−7280 W إلى المصدر', '−72800 W إلى المصدر'], a: 1, e: 'Pa = Va·Ia = (−182)(40) = −7280 W: الإشارة السالبة تعني أن القدرة تعود إلى المصدر.' },
+  { obj: '3-11', q: 'في الموحد المزدوج، أي موحد يعمل في الربع الرابع (فرملة عكسية)؟', o: ['الأول عند α > 90°', 'الثاني عند α < 90°', 'الثاني عند α > 90°'], a: 0, e: 'الأول يمرر تياراً موجباً؛ عند α > 90° يصبح جهده سالباً والمحرك يدور عكسياً بفعل الحمل: Va سالب وIa موجب.' }
+];
+const quizAns = {};
+function buildQuiz() {
+  const host = $('quiz'); host.innerHTML = '';
+  QUIZ.forEach((t, j) => {
+    const el = document.createElement('div'); el.className = 'task';
+    el.innerHTML = `<h3><b>${t.obj}</b>السؤال ${j + 1}</h3><p>${t.q}</p>`;
+    const opts = document.createElement('div'); opts.className = 'opts'; const fb = document.createElement('p'); fb.className = 'fb';
+    t.o.forEach((o, k) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = o; b.onclick = () => {
+      if (quizAns[j] != null) return;
+      quizAns[j] = k === t.a; b.classList.add(k === t.a ? 'right' : 'wrong'); if (k !== t.a) opts.children[t.a].classList.add('right');
+      fb.className = 'fb ' + (k === t.a ? 'ok' : 'bad'); fb.textContent = (k === t.a ? 'صحيح. ' : 'غير صحيح. ') + t.e; score(); };
+      opts.appendChild(b); });
+    el.append(opts, fb); host.appendChild(el);
+  });
+  score();
+}
+function score() { const n = Object.keys(quizAns).length, c = Object.values(quizAns).filter(Boolean).length; $('score').textContent = n ? `النتيجة: ${c} من ${n}` + (n === QUIZ.length ? (c >= 5 ? ' — أتقنت أهداف الجزء الأحادي الوجه.' : ' — راجع المهام المرتبطة بالأسئلة التي أخطأت فيها.') : '') : ''; }
+
+/* ------------------------------------------------------------ wiring ----- */
+function applyExample(ex) {
+  for (const k of ['Vs', 'f', 'Ra', 'Kv', 'Rf', 'af', 'TL', 'alpha', 'op', 'nGen', 'fieldRev', 'conv']) if (ex[k] !== undefined) S[k] = ex[k];
+  S.ideal = true; syncControls(); recompute();
+}
+function syncControls() {
+  writeInputs(); $('al').value = S.alpha; $('la').value = S.La; $('ng').value = S.nGen; $('ideal').checked = S.ideal; $('fr').checked = S.fieldRev;
+  for (const [id, v] of [['op', S.op], ['conv', String(S.conv)]]) $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+  $('play').textContent = S.playing ? 'إيقاف الحركة' : 'تشغيل الحركة';
+}
+function setMode(m) {
+  if (!MODES[m]) m = 'semi';
+  S.mode = m;
+  const md = MODES[m]; $('ttl').textContent = md.t; $('lead').innerHTML = bidi(md.lead); document.title = md.t + ' — محاكي 242';
+  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.m === m) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  $('objs').innerHTML = md.objs.map(c => `<div class="obj${c.startsWith('م') ? ' lab' : ''}"><b>${c}</b><span>${bidi(OBJ[c])}</span></div>`).join('');
+  $('ex').innerHTML = ''; EXAMPLES[m].forEach(([lab, ex]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = lab; b.onclick = () => applyExample(ex); $('ex').appendChild(b); });
+  const first = EXAMPLES[m][0][1];
+  for (const k of ['Vs', 'f', 'Ra', 'Kv', 'Rf', 'af', 'TL', 'alpha']) S[k] = first[k];
+  S.op = first.op || 'motor'; S.fieldRev = !!first.fieldRev; S.conv = first.conv || 1; S.ideal = true;
+  if (m === 'semi') S.alpha = 82.3; if (m === 'full') S.alpha = 60;
+  buildCircuit(); syncControls(); buildTasks(); buildLab(); recompute();
+}
+$('al').addEventListener('input', e => { S.alpha = parseFloat(e.target.value); recompute(); });
+$('la').addEventListener('input', e => { S.La = parseFloat(e.target.value); recompute(); });
+$('ng').addEventListener('input', e => { S.nGen = parseFloat(e.target.value); recompute(); });
+$('ideal').addEventListener('change', e => { S.ideal = e.target.checked; recompute(); });
+$('fr').addEventListener('change', e => { S.fieldRev = e.target.checked; recompute(); });
+for (const id of ['op', 'conv']) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S[id] = id === 'conv' ? parseInt(b.dataset.v) : b.dataset.v; syncControls(); drawAfterConv(); });
+function drawAfterConv() { recompute(); }
+for (const k of ['Vs', 'f', 'Ra', 'Kv', 'Rf', 'af', 'TL']) $(k).addEventListener('change', () => { readInputs(); recompute(); });
+$('play').addEventListener('click', () => { S.playing = !S.playing; syncControls(); frame(); });
+$('th').addEventListener('input', e => { S.theta = parseFloat(e.target.value); S.playing = false; syncControls(); frame(); checkTasks(); });
+$('stepb').addEventListener('click', () => { S.theta = (S.theta + 715) % 720; S.playing = false; syncControls(); frame(); checkTasks(); });
+$('stepf').addEventListener('click', () => { S.theta = (S.theta + 5) % 720; S.playing = false; syncControls(); frame(); checkTasks(); });
+$('labClear').addEventListener('click', () => { labSave({}); buildLab(); });
+window.addEventListener('hashchange', () => setMode(location.hash.slice(1)));
+let tick = 0; setInterval(() => { if (S.playing && (++tick % 2 === 0)) checkTasks(); }, 500);
+buildQuiz();
+setMode(location.hash.slice(1) || 'semi');
+requestAnimationFrame(loop);
 })();
 </script>
-
 </body>
 </html>
