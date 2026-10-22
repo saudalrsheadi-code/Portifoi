@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>اختبار المحرك العام والمحرك التنافري</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+<style>
+/* Layout: single reading column, one question card at a time with progress and score */
+:root{--bg:#f5f8f8;--surface:#fff;--fg:#1f2d33;--muted:#5d6e75;--line:#d6e1e2;--teal:#0A7C78;--teal-soft:#d9eeec;--ok:#2e7d4f;--ok-soft:#e3f3e9;--bad:#b23b3b;--bad-soft:#f8e4e4;--blue:#1F7892;
+  --f-body:"Cairo","Segoe UI",Tahoma,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1719;--surface:#162226;--fg:#e4eef0;--muted:#97aab0;--line:#2a3a3f;--teal:#3fb3ad;--teal-soft:#16403e;--ok:#5cc489;--ok-soft:#173527;--bad:#e07b7b;--bad-soft:#3a1d1d;--blue:#5ab2cc;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1719;--surface:#162226;--fg:#e4eef0;--muted:#97aab0;--line:#2a3a3f;--teal:#3fb3ad;--teal-soft:#16403e;--ok:#5cc489;--ok-soft:#173527;--bad:#e07b7b;--bad-soft:#3a1d1d;--blue:#5ab2cc;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.75;direction:rtl;
+ padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+.wrap{max-width:680px;margin:0 auto;display:grid;gap:14px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:23px;line-height:1.35}
+.lead{margin:0;color:var(--muted);font-size:14px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--teal);width:0;transition:width .3s}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+.q{font-weight:700;font-size:17px;margin:0}
+.obj{font-size:12px;color:var(--teal);background:var(--teal-soft);border-radius:6px;padding:0 8px;justify-self:start}
+.opts{display:grid;gap:8px}
+.opt{text-align:right;font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt:hover{border-color:var(--teal)}
+.opt.ok{background:var(--ok-soft);border-color:var(--ok)}
+.opt.bad{background:var(--bad-soft);border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.fb{border-radius:10px;padding:10px 12px;font-size:14px;margin:0}
+.fb.ok{background:var(--ok-soft)} .fb.bad{background:var(--bad-soft)}
+.fb b{display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;border-radius:8px;padding:8px 18px;cursor:pointer;min-height:44px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.score{font-size:44px;font-weight:700;color:var(--teal);line-height:1.1;margin:0}
+.rev{display:grid;gap:6px;font-size:14px;margin:0;padding:0;list-style:none}
+.rev li{border-bottom:1px solid var(--line);padding-block:4px}
+footer{font-size:12px;color:var(--muted)}
+</style>
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الرابعة</span>
+    <h1>اختبار ذاتي: المحرك العام والمحرك التنافري</h1>
+    <p class="lead">13 سؤالاً تغطي أهداف الوحدة. تظهر الإجابة الصحيحة وسببها بعد كل اختيار.</p>
+  </header>
+  <div class="meta"><span id="pos">السؤال 1</span><span id="sc">الإجابات الصحيحة: 0</span></div>
+  <div class="bar"><i id="bar"></i></div>
+  <section class="card" id="card" aria-live="polite"></section>
+  <footer>المرجع: الحقيبة التدريبية — الوحدة الرابعة، الاختبار الذاتي والأسئلة الإضافية في الملحق.</footer>
+</div>
+<script>
+(() => {
+const Q = [["المحرك العام هو المحرك الذي:", ["يمكن استخدامه في جميع الأغراض.", "يمكن أن يعمل على كل من التيار المستمر والمتردد.", "يعمل على التيار المتردد فقط.", "يعمل على التيار المستمر فقط."], 1, "سُمي عاماً لأنه يعمل على مصدري التيار المستمر والمتردد (القسم 4-1).", "4-1"], ["عندما يوصل محرك التوالي للتيار المستمر بمصدر للتيار المتردد، فإنه:", ["يعمل بكفاءة منخفضة.", "يعمل بمعامل قدرة منخفض.", "تحدث شرارة بين الموحد والفرش.", "جميع ما سبق."], 3, "لذلك تُعدّل تصميماته: شرائح حديد، ولفات مجال أقل، وأقطاب بينية، وفرش ذات مقاومة كبيرة.", "4-1"], ["عندما يعمل المحرك العام على مصدر للتيار المستمر:", ["يعمل بكفاءة عالية.", "يولد عزماً أكبر.", "يدور بسرعة أعلى.", "جميع ما سبق."], 3, "الشكل (4-3): خواص التيار المستمر أعلى؛ لأن معاوقة الملفات تمتص جزءاً من الجهد على المتردد، والتشبع يقلل المجال.", "4-5"], ["من أهم خواص المحرك العام:", ["أداؤه الجيد عند التشغيل بالتيار المتردد.", "أداؤه الجيد عند التشغيل بالتيار المستمر.", "سرعته المنخفضة عند جميع الأحمال.", "قدرته العالية مقارنة بحجمه."], [1, 3], "القسم (4-1-2): سرعات عالية، وعزم كبير، وقدرة عالية مقارنة بحجمه، وأداء أفضل على المستمر.", "4-5"], ["يبقى اتجاه دوران المحرك العام ثابتاً على التيار المتردد لأن:", ["المنتج والمجال على التوالي فينعكس تياراهما معاً.", "التردد منخفض.", "الفرش من الكربون.", "المجال من مغناطيس دائم."], 0, "الزاوية بين التيارين صفر وينعكسان في اللحظة نفسها، فيتولد عزم نابض في اتجاه واحد.", "4-2"], ["تردد نبضات العزم في المحرك العام على التيار المتردد:", ["يساوي تردد المصدر.", "ضعف تردد المصدر.", "نصف تردد المصدر.", "صفر."], 1, "القسم (4-1).", "4-2"], ["محرك عام: Ea = 74.05 V و Ia = 17.58 A والمفاقيد 80 W. قدرة الخرج تقريباً:", ["1302 W", "1222 W", "1924 W", "80 W"], 1, "Pd = 74.05 × 17.58 = 1302 W، Po = 1302 − 80 = 1222 W.", "4-4"], ["من استخدامات المحرك العام:", ["المكانس الكهربائية والخلاطات.", "محطات الضخ الكبيرة.", "المولدات.", "أجهزة قياس السرعة."], 0, "والمثقاب الكهربائي وآلات الحياكة (القسم 4-1-2).", "4-6"], ["في المحرك التنافري يستمد ملف المنتج تياره:", ["من المصدر مباشرة.", "من ملفات العضو الثابت بالتأثير.", "من بطارية.", "من مكثف."], 1, "القسم (4-2-3).", "4-9"], ["عندما تكون زاوية الفرش α = 0 في المحرك التنافري:", ["يتولد أقصى عزم.", "يتلاشى ملف المجال وعزم الدوران، ويمر أكبر تيار.", "يتلاشى ملف التحويل.", "يدور بأقصى سرعة."], 1, "موقع المعاوقة الصغيرة (القسم 4-2-3).", "4-7"], ["عند بدء حركة المحرك التنافري تكون الفرش في:", ["موقع المعاوقة الصغيرة.", "موقع المعاوقة الكبيرة ثم تُزاح.", "أي موقع.", "منتصف المسافة دائماً."], 1, "حيث يكون تيار البدء أقل ما يمكن، ثم تُزاح فيدور المحرك عكس اتجاه الإزاحة.", "4-8"], ["يُعكس اتجاه دوران المحرك التنافري:", ["بعكس أطراف المصدر.", "بإزاحة الفرش إلى الجهة الأخرى من محور ملف الثابت.", "بزيادة الجهد.", "بقصر ملف الثابت."], 1, "يدور المحرك في اتجاه معاكس لاتجاه إزاحة الفرش.", "4-8"], ["من أسباب عدم بدء المحرك التنافري الدوران:", ["الفرش في موقع المعاوقة الكبيرة أو الصغيرة (α = 90° أو 0).", "زيادة الحمل الخفيف.", "ارتفاع التردد.", "وجود مروحة."], 0, "عند α = 0 أو 90° يتلاشى العزم.", "4-10"]];
+const $ = id => document.getElementById(id);
+const isLtr = s => /^[\(\dθ]/.test(s) && !/[؀-ۿ]/.test(s);
+let i = 0, score = 0, answers = [];
+function render() {
+  const [q, opts, ok, why, obj] = Q[i];
+  $('pos').textContent = `السؤال ${i + 1} من ${Q.length}`;
+  $('bar').style.width = (i / Q.length * 100) + '%';
+  const c = $('card'); c.innerHTML = '';
+  const tag = document.createElement('span'); tag.className = 'obj'; tag.textContent = 'الهدف ' + '؜' + obj; c.appendChild(tag);
+  const p = document.createElement('p'); p.className = 'q'; p.textContent = q; c.appendChild(p);
+  const box = document.createElement('div'); box.className = 'opts'; c.appendChild(box);
+  const fb = document.createElement('p'); fb.className = 'fb'; fb.hidden = true;
+  const nav = document.createElement('div'); nav.className = 'row';
+  const next = document.createElement('button'); next.className = 'btn'; next.textContent = i < Q.length - 1 ? 'السؤال التالي' : 'عرض النتيجة'; next.hidden = true;
+  next.onclick = () => { i++; i < Q.length ? render() : finish(); };
+  nav.appendChild(next);
+  const multi = Array.isArray(ok), picked = new Set();
+  const reveal = right => {
+    [...box.children].forEach((x, j) => { x.disabled = true; if (multi ? ok.includes(j) : j === ok) x.classList.add('ok'); });
+    if (right) score++; answers.push(right);
+    fb.className = 'fb ' + (right ? 'ok' : 'bad'); fb.hidden = false;
+    const key = (multi ? ok : [ok]).map(j => 'أبجد'[j]).join(' و ');
+    fb.innerHTML = '<b>' + (right ? 'إجابة صحيحة.' : 'الإجابة الصحيحة: ' + key + '.') + '</b>';
+    const w = document.createElement('span'); w.textContent = why; fb.appendChild(w);
+    $('sc').textContent = 'الإجابات الصحيحة: ' + score; next.hidden = false; check.hidden = true; next.focus();
+  };
+  const check = document.createElement('button'); check.className = 'btn ghost'; check.textContent = 'تحقق من الإجابة'; check.hidden = !multi;
+  check.onclick = () => { const sel = [...picked].sort().join(','), want = [...ok].sort().join(','); [...box.children].forEach((x, j) => { if (picked.has(j) && !ok.includes(j)) x.classList.add('bad'); }); reveal(sel === want); };
+  nav.appendChild(check);
+  if (multi) { const h = document.createElement('p'); h.className = 'lead'; h.textContent = 'قد تكون أكثر من إجابة صحيحة: اختر ثم اضغط "تحقق من الإجابة".'; c.appendChild(h); }
+  opts.forEach((o, k) => {
+    const b = document.createElement('button'); b.className = 'opt'; b.type = 'button';
+    b.innerHTML = '<span>' + 'أبجد'[k] + '.</span> ';
+    const s = document.createElement('span'); s.textContent = o; if (isLtr(o)) s.className = 'ltr'; b.appendChild(s);
+    b.onclick = () => {
+      if (multi) { picked.has(k) ? picked.delete(k) : picked.add(k); b.style.borderColor = picked.has(k) ? 'var(--teal)' : ''; b.style.borderWidth = picked.has(k) ? '2px' : ''; return; }
+      if (k !== ok) b.classList.add('bad'); reveal(k === ok);
+    };
+    box.appendChild(b);
+  });
+  c.appendChild(fb); c.appendChild(nav);
+}
+function finish() {
+  $('bar').style.width = '100%'; $('pos').textContent = 'انتهى الاختبار';
+  const c = $('card'); c.innerHTML = '';
+  const s = document.createElement('p'); s.className = 'score'; s.textContent = `${score} / ${Q.length}`; c.appendChild(s);
+  const m = document.createElement('p'); m.style.margin = 0;
+  m.textContent = score >= Math.ceil(Q.length*0.85) ? 'أداء ممتاز. أنت جاهز لأسئلة الوحدة والواجب.' : score >= Math.ceil(Q.length*0.6) ? 'أداء جيد. راجع الأهداف التي أخطأت فيها أدناه.' : 'راجع أقسام الوحدة المرتبطة بالأهداف أدناه، ثم أعد الاختبار.';
+  c.appendChild(m);
+  const wrong = Q.map((q, k) => [q, answers[k]]).filter(x => !x[1]);
+  if (wrong.length) {
+    const h = document.createElement('p'); h.style.margin = 0; h.innerHTML = '<b>أسئلة تحتاج مراجعة:</b>'; c.appendChild(h);
+    const ul = document.createElement('ul'); ul.className = 'rev';
+    wrong.forEach(([q]) => { const li = document.createElement('li'); li.textContent = `الهدف ؜${q[4]}: ${q[0]}`; ul.appendChild(li); });
+    c.appendChild(ul);
+  }
+  const r = document.createElement('button'); r.className = 'btn ghost'; r.textContent = 'إعادة الاختبار';
+  r.onclick = () => { i = 0; score = 0; answers = []; $('sc').textContent = 'الإجابات الصحيحة: 0'; render(); };
+  c.appendChild(r);
+}
+render();
+})();
+</script>
+
+</body>
+</html>

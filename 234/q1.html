@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>اختبار محركات الخطوة</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+<style>
+/* Layout: single reading column, one question card at a time with progress and score */
+:root{--bg:#f5f8f8;--surface:#fff;--fg:#1f2d33;--muted:#5d6e75;--line:#d6e1e2;--teal:#0A7C78;--teal-soft:#d9eeec;--ok:#2e7d4f;--ok-soft:#e3f3e9;--bad:#b23b3b;--bad-soft:#f8e4e4;--blue:#1F7892;
+  --f-body:"Cairo","Segoe UI",Tahoma,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1719;--surface:#162226;--fg:#e4eef0;--muted:#97aab0;--line:#2a3a3f;--teal:#3fb3ad;--teal-soft:#16403e;--ok:#5cc489;--ok-soft:#173527;--bad:#e07b7b;--bad-soft:#3a1d1d;--blue:#5ab2cc;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1719;--surface:#162226;--fg:#e4eef0;--muted:#97aab0;--line:#2a3a3f;--teal:#3fb3ad;--teal-soft:#16403e;--ok:#5cc489;--ok-soft:#173527;--bad:#e07b7b;--bad-soft:#3a1d1d;--blue:#5ab2cc;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.75;direction:rtl;
+ padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+.wrap{max-width:680px;margin:0 auto;display:grid;gap:14px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:23px;line-height:1.35}
+.lead{margin:0;color:var(--muted);font-size:14px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--teal);width:0;transition:width .3s}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+.q{font-weight:700;font-size:17px;margin:0}
+.obj{font-size:12px;color:var(--teal);background:var(--teal-soft);border-radius:6px;padding:0 8px;justify-self:start}
+.opts{display:grid;gap:8px}
+.opt{text-align:right;font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt:hover{border-color:var(--teal)}
+.opt.ok{background:var(--ok-soft);border-color:var(--ok)}
+.opt.bad{background:var(--bad-soft);border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.fb{border-radius:10px;padding:10px 12px;font-size:14px;margin:0}
+.fb.ok{background:var(--ok-soft)} .fb.bad{background:var(--bad-soft)}
+.fb b{display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;border-radius:8px;padding:8px 18px;cursor:pointer;min-height:44px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.score{font-size:44px;font-weight:700;color:var(--teal);line-height:1.1;margin:0}
+.rev{display:grid;gap:6px;font-size:14px;margin:0;padding:0;list-style:none}
+.rev li{border-bottom:1px solid var(--line);padding-block:4px}
+footer{font-size:12px;color:var(--muted)}
+</style>
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الأولى</span>
+    <h1>اختبار ذاتي: محركات الخطوة</h1>
+    <p class="lead">اثنا عشر سؤالاً تغطي أهداف الوحدة. تظهر الإجابة الصحيحة وسببها بعد كل اختيار.</p>
+  </header>
+  <div class="meta"><span id="pos">السؤال 1 من 12</span><span id="sc">الإجابات الصحيحة: 0</span></div>
+  <div class="bar"><i id="bar"></i></div>
+  <section class="card" id="card" aria-live="polite"></section>
+  <footer>المرجع: الحقيبة التدريبية — الوحدة الأولى، الاختبار الذاتي والأسئلة الإضافية في الملحق.</footer>
+</div>
+<script>
+(() => {
+const Q = [
+ ['في المحركات متدرجة الحركة ذات الممانعة المغناطيسية المتغيرة:', ['يتركب الدوار من أسطوانة دائرية.', 'يتركب الدوار من أسنان بارزة.', 'توجد ملفات متغيرة على الدوار.', 'توجد ملفات متغيرة على الثابت.'], 1, 'العضو الدوار يتركب من أسنان بارزة من شرائح الحديد (القسم 1-2).', '1-2'],
+ ['في المحركات متدرجة الحركة ذات الأقطاب المغناطيسية الدائمة:', ['توجد أقطاب مغناطيسية دائمة على الدوار.', 'توجد أقطاب مغناطيسية دائمة على الثابت.', 'توجد أقطاب دائمة على الثابت والدوار.', 'توجد ملفات دائمة على الدوار.'], 0, 'تُستخدم مغناطيسات دائمة قوية على العضو الدوار (القسم 1-3).', '1-2'],
+ ['في محركات الممانعة المغناطيسية المتغيرة يجب أن يكون عدد مجموعات الثابت:', ['مجموعتين فقط.', 'ثلاث مجموعات فقط.', 'أكثر من مجموعتين.', 'أكثر من ثلاث مجموعات.'], 2, 'ليخطو المحرك في الاتجاهين يلزم ثلاث مجموعات على الأقل، أي أكثر من مجموعتين.', '1-3'],
+ ['تُغذّى مجموعتان من مجموعات الثابت في الوقت نفسه بالتتالي، وذلك:', ['لعكس اتجاه الدوران.', 'للحصول على عزم أكبر.', 'لدوران المحرك بخطوة كاملة.', 'لدوران المحرك بنصف خطوة.'], 1, 'كما في الجدولين (1-7) و(1-8): للحصول على عزم أكبر من حالة تغذية مجموعة واحدة.', '1-10'],
+ ['مجموعات العضو الثابت ملفوفة بملفات تعطي مجالاً مغناطيسياً بحيث:', ['جميع الأقطاب لها القطبية نفسها.', 'الأقطاب المتجاورة لها القطبية نفسها.', 'الأقطاب المتجاورة مختلفة في قطبيتها.', 'الأقطاب المتقابلة لها القطبية نفسها.'], 2, 'الأقطاب المتجاورة مختلفة في قطبيتها (القسم 1-2).', '1-3'],
+ ['محرك ممانعة متغيرة عضوه الثابت ثلاث مجموعات ودواره اثنا عشر سناً. زاوية خطوته:', ['30°', '10°', '15°', '36°'], 1, 'θ = 360 / (3 × 12) = 10°', '1-4'],
+ ['بنصف خطوة ضد عقارب الساعة، الحالة التي تلي (A, B, C) = (0, 1, 0) هي:', ['(0, 1, 1)', '(1, 1, 0)', '(0, 0, 1)', '(1, 0, 1)'], 0, 'بعد تغذية B وحدها تُغذّى B و C معاً، كما في الجدول (1-3).', '1-5'],
+ ['في موجات الشكل (1-3) تبقى المجموعة A مفصولة بين كل تغذيتين متتاليتين لها مدة:', ['خطوة واحدة.', 'خطوتين.', 'ثلاث خطوات.', 'لا تُفصل.'], 1, 'تُغذّى A خطوة واحدة من كل ثلاث، فتبقى مفصولة خطوتين.', '1-6'],
+ ['القيمة (−1) في جدول تسلسل محرك المغناطيس الدائم تعني:', ['فصل المجموعة.', 'عكس قطبية التغذية.', 'التشغيل بنصف خطوة.', 'عكس اتجاه الدوران.'], 1, 'الإشارة السالبة تعني عكس قطبية التغذية (القسم 1-3).', '1-7'],
+ ['في المعادلة (1-2) يُستخدم جيب تمام الزاوية لحساب العزم الناتج عن:', ['التجاذب بين أقطاب مختلفة.', 'التنافر بين أقطاب متشابهة.', 'التجاذب والتنافر معاً.', 'القصور الذاتي للدوار.'], 1, 'عزم التنافر يبلغ أقصاه عند زاوية صفر، فيخضع لجيب تمام الزاوية.', '1-9'],
+ ['لعكس اتجاه دوران محرك الخطوة:', ['تُعكس قطبية جميع المجموعات.', 'يُعكس ترتيب تسلسل التغذية.', 'يُزاد عدد المجموعات.', 'تُغذّى المجموعتان معاً.'], 1, 'يُعكس اتجاه الدوران بعكس ترتيب تسلسل تغذية مجموعات العضو الثابت.', '1-11'],
+ ['لا يحتاج محرك الممانعة المتغيرة إلى عكس قطبية التغذية؛ لأن:', ['دواره من الحديد فينجذب إلى القطب المغذّى أياً كانت قطبيته.', 'عضوه الثابت ثلاث مجموعات.', 'زاوية خطوته صغيرة.', 'ملفاته على الدوار.'], 0, 'دوار الحديد لا قطبية ثابتة له، بخلاف دوار المغناطيس الدائم.', '1-12'],
+];
+const $ = id => document.getElementById(id);
+const isLtr = s => /^[\(\dθ]/.test(s) && !/[؀-ۿ]/.test(s);
+let i = 0, score = 0, answers = [];
+function render() {
+  const [q, opts, ok, why, obj] = Q[i];
+  $('pos').textContent = `السؤال ${i + 1} من ${Q.length}`;
+  $('bar').style.width = (i / Q.length * 100) + '%';
+  const c = $('card'); c.innerHTML = '';
+  const tag = document.createElement('span'); tag.className = 'obj'; tag.textContent = 'الهدف ' + '؜' + obj; c.appendChild(tag);
+  const p = document.createElement('p'); p.className = 'q'; p.textContent = q; c.appendChild(p);
+  const box = document.createElement('div'); box.className = 'opts'; c.appendChild(box);
+  const fb = document.createElement('p'); fb.className = 'fb'; fb.hidden = true;
+  const nav = document.createElement('div'); nav.className = 'row';
+  const next = document.createElement('button'); next.className = 'btn'; next.textContent = i < Q.length - 1 ? 'السؤال التالي' : 'عرض النتيجة'; next.hidden = true;
+  next.onclick = () => { i++; i < Q.length ? render() : finish(); };
+  nav.appendChild(next);
+  opts.forEach((o, k) => {
+    const b = document.createElement('button'); b.className = 'opt'; b.type = 'button';
+    b.innerHTML = '<span>' + 'أبجد'[k] + '.</span> ';
+    const s = document.createElement('span'); s.textContent = o; if (isLtr(o)) s.className = 'ltr'; b.appendChild(s);
+    b.onclick = () => {
+      [...box.children].forEach((x, j) => { x.disabled = true; if (j === ok) x.classList.add('ok'); });
+      const right = k === ok; if (!right) b.classList.add('bad'); else score++;
+      answers.push(right);
+      fb.className = 'fb ' + (right ? 'ok' : 'bad'); fb.hidden = false;
+      fb.innerHTML = '<b>' + (right ? 'إجابة صحيحة.' : 'الإجابة الصحيحة: ' + 'أبجد'[ok] + '.') + '</b>';
+      const w = document.createElement('span'); w.textContent = why; fb.appendChild(w);
+      $('sc').textContent = 'الإجابات الصحيحة: ' + score;
+      next.hidden = false; next.focus();
+    };
+    box.appendChild(b);
+  });
+  c.appendChild(fb); c.appendChild(nav);
+}
+function finish() {
+  $('bar').style.width = '100%'; $('pos').textContent = 'انتهى الاختبار';
+  const c = $('card'); c.innerHTML = '';
+  const s = document.createElement('p'); s.className = 'score'; s.textContent = `${score} / ${Q.length}`; c.appendChild(s);
+  const m = document.createElement('p'); m.style.margin = 0;
+  m.textContent = score >= 10 ? 'أداء ممتاز. أنت جاهز لأسئلة الوحدة والواجب.' : score >= 7 ? 'أداء جيد. راجع الأهداف التي أخطأت فيها أدناه.' : 'راجع أقسام الوحدة المرتبطة بالأهداف أدناه، ثم أعد الاختبار.';
+  c.appendChild(m);
+  const wrong = Q.map((q, k) => [q, answers[k]]).filter(x => !x[1]);
+  if (wrong.length) {
+    const h = document.createElement('p'); h.style.margin = 0; h.innerHTML = '<b>أسئلة تحتاج مراجعة:</b>'; c.appendChild(h);
+    const ul = document.createElement('ul'); ul.className = 'rev';
+    wrong.forEach(([q]) => { const li = document.createElement('li'); li.textContent = `الهدف ؜${q[4]}: ${q[0]}`; ul.appendChild(li); });
+    c.appendChild(ul);
+  }
+  const r = document.createElement('button'); r.className = 'btn ghost'; r.textContent = 'إعادة الاختبار';
+  r.onclick = () => { i = 0; score = 0; answers = []; $('sc').textContent = 'الإجابات الصحيحة: 0'; render(); };
+  c.appendChild(r);
+}
+render();
+})();
+</script>
+
+</body>
+</html>

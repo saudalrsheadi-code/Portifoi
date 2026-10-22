@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>محاكي محركات التحكم</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+[hidden]{display:none!important}
+/* Layout: one column on phones — motor first, controls under it, then table + waveform; two columns from 900px */
+:root{
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#b5651d; --steel:#c9d3d7; --steel-d:#8d9ca2;
+  --ok:#2e7d4f; --bad:#b23b3b;
+  --f-body:"Cairo", "Segoe UI", Tahoma, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;direction:rtl;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 32px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:2px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
+.grid{display:grid;gap:16px}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:15px;color:var(--teal)}
+.motor svg{direction:ltr;width:100%;max-width:380px;margin:0 auto;display:block}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.readout div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.readout b{display:block;font-family:var(--f-mono);font-size:18px;color:var(--fg);direction:ltr}
+.readout span{font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:8px 16px;cursor:pointer;min-height:42px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+label{font-size:13px;color:var(--muted)}
+select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+input[type=range]{accent-color:var(--teal);width:140px}
+.formula{font-family:var(--f-mono);direction:ltr;text-align:center;background:var(--teal-soft);border-radius:8px;padding:8px;font-size:clamp(13px,3.6vw,16px);overflow-wrap:anywhere}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;direction:ltr;margin:0 auto;font-family:var(--f-mono);font-size:15px}
+th,td{border:1px solid var(--line);padding:3px 14px;text-align:center}
+th{color:var(--teal);background:var(--teal-soft)}
+td.n{color:var(--muted);font-size:12px;border:0;padding-inline:6px}
+tr.cur td:not(.n){background:var(--teal);color:#fff}
+.wave{overflow-x:auto;direction:ltr}
+.wave svg{display:block;width:100%}
+.note{font-size:13px;color:var(--muted);margin:0}
+.predict{border:1px dashed var(--teal);border-radius:10px;padding:10px;display:grid;gap:8px}
+.predict[hidden]{display:none!important}
+.opts{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
+.opts button{font-family:var(--f-mono);font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
+.fb{font-size:14px;margin:0;min-height:1.7em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-left:4px}
+footer{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:4px 14px}
+.tabs a[aria-current="page"]{background:var(--teal);color:#fff}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto}
+.warn{color:var(--bad)}
+</style>
+<style>
+.sl{display:grid;grid-template-columns:8em 1fr 5.5em;gap:8px;align-items:center;font-size:13px}
+.sl input{width:100%;accent-color:var(--teal)}
+.sl output{font-family:var(--f-mono);direction:ltr;text-align:left;font-size:13px}
+.plot svg{display:block;width:100%;direction:ltr}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.kpi div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.kpi b{display:block;font-family:var(--f-mono);font-size:16px;direction:ltr}
+.kpi span{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:3px 12px;cursor:pointer}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto;white-space:pre}
+</style>
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الثالثة</span>
+    <h1 id="h1">محرك التحكم ثنائي الوجه للتيار المتردد</h1>
+    <p class="lead" id="lead"></p>
+    <nav class="tabs" aria-label="الموضوع">
+      <a href="#ac" id="tAc">الخواص (تيار متردد)</a>
+      <a href="#resp" id="tResp">الاستجابة الزمنية</a>
+      <a href="#dc" id="tDc">التيار المستمر</a>
+    </nav>
+  </header>
+
+  <!-- AC characteristics -->
+  <div class="grid" id="vAc">
+    <section class="panel">
+      <h2>منحنى العزم والسرعة</h2>
+      <div class="plot"><svg id="acPlot" viewBox="0 0 600 380" role="img" aria-label="منحنى العزم والسرعة"></svg></div>
+      <div class="legend"><span><i style="background:var(--teal)"></i>المنحنى الحالي</span><span><i style="background:var(--muted)"></i>منحنيات المقارنة</span></div>
+      <p class="note" id="acExplain" aria-live="polite"></p>
+    </section>
+    <section class="panel">
+      <h2>القيم</h2>
+      <div class="sl"><label for="r2">مقاومة الدوار R2</label><input type="range" id="r2" min="0.1" max="1.6" step="0.01" value="1.3"><output id="or2"></output></div>
+      <div class="sl"><label for="va">جهد ملف التحكم Va</label><input type="range" id="va" min="0" max="1" step="0.01" value="1"><output id="ova"></output></div>
+      <div class="chips"><button data-r="0.2">مقاومة صغيرة (a)</button><button data-r="0.5">متوسطة (b)</button><button data-r="1.3">كبيرة (c)</button></div>
+      <p class="note">ملف الجهد الثابت على مصدر ثابت القيمة والتردد، والتحكم بتغيير جهد ملف التحكم. عند Va = 0 يُقصر ملف التحكم، فلا يبدأ المحرك الحركة كمحرك أحادي الوجه حتى لو تلقى دفعة خارجية.</p>
+      <svg id="acRot" viewBox="0 0 320 180" style="width:100%;max-width:340px;margin:0 auto;display:block;direction:ltr" role="img" aria-label="دوار المحرك"></svg>
+      <div class="kpi"><div><b id="kT0">0</b><span>عزم البدء (pu)</span></div><div><b id="kW">0</b><span>السرعة الآن (pu)</span></div></div>
+    </section>
+  </div>
+
+  <!-- time response -->
+  <div class="grid" id="vResp" hidden>
+    <section class="panel">
+      <h2>السرعة مع الزمن</h2>
+      <div class="plot"><svg id="rPlot" viewBox="0 0 600 380" role="img" aria-label="منحنى السرعة مع الزمن"></svg></div>
+      <div class="row"><button class="btn" id="go">بدء الحركة</button><button class="btn ghost" id="rev">عكس الحركة</button><button class="btn ghost" id="rst">إعادة</button></div>
+      <p class="note" id="rExplain" aria-live="polite"></p>
+    </section>
+    <section class="panel">
+      <h2>المعطيات</h2>
+      <div class="sl"><label for="tst">عزم البدء Tst</label><input type="range" id="tst" min="0.2" max="1.2" step="0.05" value="0.75"><output id="otst"></output></div>
+      <div class="sl"><label for="w0">سرعة اللاحمل ω0</label><input type="range" id="w0" min="100" max="400" step="5" value="225"><output id="ow0"></output></div>
+      <div class="sl"><label for="J">القصور الذاتي J</label><input type="range" id="J" min="0.002" max="0.02" step="0.001" value="0.01"><output id="oJ"></output></div>
+      <div class="chips"><button id="ex31">مثال (3-1)</button></div>
+      <div class="kpi">
+        <div><b id="kA">0</b><span>α (rad/s²)</span></div><div><b id="kTau">0</b><span>τ (s)</span></div><div><b id="kTr">0</b><span>τr (s)</span></div><div><b id="kNow">0</b><span>ω الآن</span></div>
+      </div>
+      <div class="calc" id="rCalc"></div>
+    </section>
+  </div>
+
+  <!-- DC servo -->
+  <div class="grid" id="vDc" hidden>
+    <section class="panel">
+      <h2>منحنيات العزم والسرعة عند تغيير جهد المنتج</h2>
+      <div class="plot"><svg id="dPlot" viewBox="0 0 600 380" role="img" aria-label="خواص محرك التحكم للتيار المستمر"></svg></div>
+      <p class="note" id="dExplain" aria-live="polite"></p>
+    </section>
+    <section class="panel">
+      <h2>القيم</h2>
+      <div class="sl"><label for="dva">جهد المنتج Va</label><input type="range" id="dva" min="0" max="120" step="1" value="95"><output id="odva"></output></div>
+      <div class="sl"><label for="load">عزم الحمل</label><input type="range" id="load" min="0" max="0.8" step="0.01" value="0.25"><output id="oload"></output></div>
+      <p class="note">المجال ثابت (تغذية مستقلة أو مغناطيس دائم)، ومقاومة الدوار كبيرة، فتكون الخواص خطوطاً مستقيمة متوازية ذات ميل سالب: T = −Kω·ω + Kv·Va.</p>
+      <div class="kpi"><div><b id="dTst">0</b><span>Tst (N·m)</span></div><div><b id="dW0">0</b><span>ω0 (rad/s)</span></div><div><b id="dW">0</b><span>سرعة التشغيل</span></div></div>
+    </section>
+  </div>
+  <footer id="foot"></footer>
+</div>
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg', $ = id => document.getElementById(id);
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const txt = (p, x, y, s, a = {}) => { const t = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--f-mono)' }, a), p); t.textContent = s; return t; };
+const f = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function axes(svg, xmax, ymax, xl, yl, xt, yt) {
+  const L = 52, B = 340, W = 575, T = 20;
+  const X = v => L + v / xmax * (W - L), Y = v => B - v / ymax * (B - T);
+  xt.forEach(v => { el('line', { x1: X(v), y1: T, x2: X(v), y2: B, stroke: 'var(--line)' }, svg); txt(svg, X(v), B + 16, v, { 'text-anchor': 'middle' }); });
+  yt.forEach(v => { el('line', { x1: L, y1: Y(v), x2: W, y2: Y(v), stroke: 'var(--line)' }, svg); txt(svg, L - 6, Y(v) + 4, v, { 'text-anchor': 'end' }); });
+  txt(svg, W, B + 32, xl, { 'text-anchor': 'end' }); txt(svg, L, T - 6, yl);
+  return { X, Y };
+}
+const path = (svg, pts, a) => el('path', Object.assign({ d: 'M' + pts.map(p => p.join(',')).join(' L'), fill: 'none' }, a), svg);
+
+// ---------- AC two-phase servo: induction torque curve, scaled by control voltage ----------
+const Tind = (s, R) => 2 * R * s / (R * R + s * s);           // normalised, peak 1 at s = R
+const Tac = (w, R, va) => va * Tind(1 - w, R) / (R >= 1 ? Tind(1, R) : 1) * (R >= 1 ? 1 : 1);
+let wAc = 0, rotA = 0;
+function drawAc() {
+  const R = +$('r2').value, va = +$('va').value; $('or2').textContent = f(R) + ' pu'; $('ova').textContent = f(va) + ' pu';
+  const svg = $('acPlot'); svg.textContent = '';
+  const { X, Y } = axes(svg, 1, 1.1, 'speed (pu)', 'torque (pu)', [0, .25, .5, .75, 1], [0, .25, .5, .75, 1]);
+  [0.2, 0.5, 1.3].forEach(r => path(svg, Array.from({ length: 101 }, (_, i) => [X(i / 100), Y(Tind(1 - i / 100, r))]), { stroke: 'var(--muted)', 'stroke-width': 1.2, 'stroke-dasharray': '5 4' }));
+  path(svg, Array.from({ length: 101 }, (_, i) => [X(i / 100), Y(va * Tind(1 - i / 100, R))]), { stroke: 'var(--teal)', 'stroke-width': 3 });
+  const sm = Math.min(R, 1), wm = 1 - sm;
+  el('circle', { cx: X(wm), cy: Y(va * Tind(sm, R)), r: 5, fill: 'var(--mark)' }, svg);
+  $('kT0').textContent = f(va * Tind(1, R));
+  const linear = R >= 1;
+  $('acExplain').textContent = va === 0
+    ? 'جهد ملف التحكم صفر وملف التحكم مقصور: لا يتولد عزم، فلا يبدأ المحرك الحركة كمحرك أحادي الوجه.'
+    : linear
+      ? 'المقاومة كبيرة: أقصى عزم عند بدء الحركة، والعلاقة بين العزم والسرعة شبه خطية ذات ميل سالب من الصفر حتى سرعة اللاحمل؛ فيعمل المحرك مستقراً عند أي سرعة (المنحنى c).'
+      : `المقاومة صغيرة: أقصى عزم عند سرعة ${f(wm)} pu، والعلاقة غير خطية ولها جزء موجب الميل، فلا يصلح المحرك للتحكم عند السرعات المنخفضة.`;
+}
+function drawAcRotor() {
+  const s = $('acRot'); s.textContent = '';
+  el('rect', { x: 30, y: 40, width: 50, height: 40, rx: 4, fill: 'var(--steel)', stroke: 'var(--steel-d)' }, s); txt(s, 55, 100, 'm', { 'text-anchor': 'middle' });
+  el('rect', { x: 240, y: 40, width: 50, height: 40, rx: 4, fill: 'var(--teal-soft)', stroke: 'var(--teal)' }, s); txt(s, 265, 100, 'a (Va)', { 'text-anchor': 'middle', fill: 'var(--teal)' });
+  const g = el('g', { id: 'acG' }, s);
+  el('circle', { cx: 160, cy: 70, r: 50, fill: 'var(--surface)', stroke: 'var(--fg)', 'stroke-width': 1.5 }, g);
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; el('circle', { cx: 160 + 36 * Math.cos(a), cy: 70 + 36 * Math.sin(a), r: 5, fill: 'var(--steel)', stroke: 'var(--fg)' }, g); }
+  el('circle', { cx: 160, cy: 34, r: 5, fill: 'var(--mark)' }, g); el('circle', { cx: 160, cy: 70, r: 6, fill: 'var(--fg)' }, g);
+  txt(s, 160, 150, 'squirrel-cage rotor', { 'text-anchor': 'middle' });
+}
+['r2', 'va'].forEach(id => $(id).addEventListener('input', drawAc));
+document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { $('r2').value = b.dataset.r; drawAc(); });
+
+// ---------- time response ----------
+let tNow = 0, wNow = 0, target = 0, run = false, hist = [];
+const P = () => ({ Tst: +$('tst').value, w0: +$('w0').value, J: +$('J').value });
+function respKpi() {
+  const { Tst, w0, J } = P(); const a = Tst / J, tau = J * w0 / Tst;
+  $('otst').textContent = f(Tst) + ' N·m'; $('ow0').textContent = w0 + ' rad/s'; $('oJ').textContent = f(J, 3) + ' kg·m²';
+  $('kA').textContent = f(a, 1); $('kTau').textContent = f(tau); $('kTr').textContent = f(1.7 * tau); $('kNow').textContent = f(wNow, 0);
+  const Kw = Tst / w0;
+  $('rCalc').textContent = `α = Tst / J = ${f(Tst)} / ${f(J, 3)} = ${f(a, 1)} rad/s²\nτ = J·ω0 / Tst = ${f(J, 3)} × ${w0} / ${f(Tst)} = ${f(tau)} s\nτr = 1.7 × τ = ${f(1.7 * tau)} s\nKω = Tst / ω0 = ${f(Kw, 4)}\nω = ${w0} (1 − e^(−t/${f(tau)}))`;
+  return { a, tau };
+}
+function drawResp() {
+  const { w0 } = P(), { tau } = respKpi();
+  const svg = $('rPlot'); svg.textContent = '';
+  const tmax = Math.max(8 * tau, 2), ym = w0 * 1.1;
+  const L = 52, B = 190, W = 575, T = 20, X = t => L + t / tmax * (W - L), Y = v => B - v / ym * (B - T) * 1;
+  // symmetric axis for reversal
+  const Yb = v => 190 - v / ym * 170;
+  el('line', { x1: L, y1: 190, x2: W, y2: 190, stroke: 'var(--muted)' }, svg);
+  [w0, -w0].forEach(v => { el('line', { x1: L, y1: Yb(v), x2: W, y2: Yb(v), stroke: 'var(--line)', 'stroke-dasharray': '4 4' }, svg); txt(svg, L - 6, Yb(v) + 4, (v > 0 ? '+' : '−') + 'ω0', { 'text-anchor': 'end' }); });
+  el('line', { x1: L, y1: Yb(0.632 * w0), x2: X(tau), y2: Yb(0.632 * w0), stroke: 'var(--mark)', 'stroke-dasharray': '3 3' }, svg);
+  el('line', { x1: X(tau), y1: Yb(0.632 * w0), x2: X(tau), y2: 190, stroke: 'var(--mark)', 'stroke-dasharray': '3 3' }, svg);
+  txt(svg, X(tau), 206, 'τ', { 'text-anchor': 'middle', fill: 'var(--mark)', 'font-size': 14 }); txt(svg, L + 4, Yb(0.632 * w0) - 4, '0.632 ω0', { fill: 'var(--mark)' });
+  path(svg, [[X(0), Yb(0)], [X(tau), Yb(w0)]], { stroke: 'var(--mark)', 'stroke-width': 1, 'stroke-dasharray': '2 3' });
+  for (let i = 0; i <= 5; i++) txt(svg, X(i * tmax / 5), 370, f(i * tmax / 5, 1), { 'text-anchor': 'middle' });
+  txt(svg, W, 356, 't (s)', { 'text-anchor': 'end' }); txt(svg, L, 12, 'ω (rad/s)');
+  if (hist.length > 1) path(svg, hist.map(([t, w]) => [X(Math.min(t, tmax)), Yb(w)]), { stroke: 'var(--teal)', 'stroke-width': 3 });
+}
+let lastT = 0;
+function step(ts) {
+  if (!run) return;
+  const dt = Math.min(0.05, (ts - lastT) / 1000 || 0.016) * 2.0; lastT = ts;
+  const { w0 } = P(), { tau } = respKpi();
+  const sub = 10; for (let i = 0; i < sub; i++) { wNow += (target - wNow) / tau * dt / sub; tNow += dt / sub; }
+  hist.push([tNow, wNow]);
+  drawResp();
+  const tmax = Math.max(8 * tau, 2);
+  if (tNow >= tmax) { run = false; }
+  else requestAnimationFrame(step);
+}
+function start(dir) {
+  const { w0 } = P(); target = dir * w0;
+  if (reduce) { const { tau } = respKpi(); for (let i = 0; i < 400; i++) { const dt = 5 * tau / 400; wNow += (target - wNow) / tau * dt; tNow += dt; hist.push([tNow, wNow]); } drawResp(); return; }
+  if (!run) { run = true; lastT = performance.now(); requestAnimationFrame(step); }
+  $('rExplain').textContent = dir > 0
+    ? 'يبدأ المحرك من السكون بأقصى تسارع α ثم يقل التسارع تدريجياً، فيصل إلى 63.2% من سرعة اللاحمل بعد ثابت الزمن τ.'
+    : 'عُكس اتجاه جهد ملف التحكم 180 درجة: تتناقص السرعة ثم تنعكس؛ وزمن عكس الحركة τr ≈ 1.7 τ حتى تبلغ 63.2% من سرعة اللاحمل في الاتجاه المضاد.';
+}
+function rst() { run = false; tNow = 0; wNow = 0; target = 0; hist = [[0, 0]]; respKpi(); drawResp(); $('rExplain').textContent = 'اضغط "بدء الحركة" لتشغيل المحرك من السكون.'; }
+$('go').onclick = () => { if (tNow === 0 || target === 0) { hist = [[0, 0]]; tNow = 0; wNow = 0; } start(1); };
+$('rev').onclick = () => { if (target === 0) return; start(-Math.sign(target)); };
+$('rst').onclick = rst;
+['tst', 'w0', 'J'].forEach(id => $(id).addEventListener('input', rst));
+$('ex31').onclick = () => { $('tst').value = 0.75; $('w0').value = 225; $('J').value = 0.01; rst(); };
+
+// ---------- DC servo ----------
+const Kv = 0.75 / 95, Kw = 0.75 / 225;
+function drawDc() {
+  const va = +$('dva').value, TL = +$('load').value; $('odva').textContent = va + ' V'; $('oload').textContent = f(TL) + ' N·m';
+  const svg = $('dPlot'); svg.textContent = '';
+  const { X, Y } = axes(svg, 300, 1.0, 'ω (rad/s)', 'T (N·m)', [0, 50, 100, 150, 200, 250, 300], [0, .25, .5, .75, 1]);
+  [70, 110].forEach(v => path(svg, [[X(0), Y(Kv * v)], [X(Kv * v / Kw), Y(0)]], { stroke: 'var(--muted)', 'stroke-width': 1.2, 'stroke-dasharray': '5 4' }));
+  const Tst = Kv * va, w0 = Tst / Kw;
+  path(svg, [[X(0), Y(Tst)], [X(w0), Y(0)]], { stroke: 'var(--teal)', 'stroke-width': 3 });
+  el('line', { x1: X(0), y1: Y(TL), x2: X(300), y2: Y(TL), stroke: 'var(--bad)', 'stroke-dasharray': '4 3' }, svg);
+  const w = Math.max(0, (Tst - TL) / Kw);
+  if (Tst > TL) el('circle', { cx: X(w), cy: Y(TL), r: 6, fill: 'var(--mark)' }, svg);
+  $('dTst').textContent = f(Tst); $('dW0').textContent = f(w0, 0); $('dW').textContent = Tst > TL ? f(w, 0) : '0';
+  $('dExplain').textContent = Tst > TL
+    ? `يستقر المحرك عند تقاطع خط الخواص مع عزم الحمل (النقطة البنية): ω = (Kv·Va − TL)/Kω = ${f(w, 0)} rad/s. زيادة Va تُزيح الخط موازياً لنفسه فتزداد السرعة.`
+    : 'عزم البدء أقل من عزم الحمل: لا يبدأ المحرك الحركة. زِد جهد المنتج.';
+}
+['dva', 'load'].forEach(id => $(id).addEventListener('input', drawDc));
+
+// ---------- tabs & loop ----------
+const CFG = {
+  ac: { h: 'محرك التحكم ثنائي الوجه للتيار المتردد', lead: 'غيّر مقاومة الدوار وجهد ملف التحكم، وقارن المنحنى بالمنحنيات a و b و c في الشكل (3-2)، ولاحظ متى تصبح العلاقة خطية.', foot: 'المرجع: الحقيبة — القسم (3-1)، الشكلان (3-2) و(3-3)، والمعادلتان (3-1) و(3-2). الأهداف 3-3 و3-4.' },
+  resp: { h: 'الاستجابة الزمنية لمحرك التحكم', lead: 'شغّل المحرك من السكون ثم اعكس حركته، وتابع على المنحنى ثابت الزمن الميكانيكي وزمن عكس الحركة. زر المثال يحمّل قيم المثال (3-1).', foot: 'المرجع: الحقيبة — بعض المصطلحات المستخدمة لمحركات التحكم، المعادلات (3-3) إلى (3-5)، الشكل (3-5)، والمثال (3-1). الأهداف 3-6 إلى 3-9.' },
+  dc: { h: 'محرك التحكم للتيار المستمر', lead: 'غيّر جهد المنتج وعزم الحمل، ولاحظ أن الخواص خطوط متوازية كما في الشكل (3-8)، وأين يستقر المحرك.', foot: 'المرجع: الحقيبة — القسم (3-2)، الشكلان (3-7) و(3-8). الهدف 3-10.' } };
+let kind = 'ac';
+function setKind() {
+  kind = ({ '#resp': 'resp', '#dc': 'dc' })[location.hash] || 'ac';
+  $('h1').textContent = CFG[kind].h; $('lead').textContent = CFG[kind].lead; $('foot').textContent = CFG[kind].foot;
+  $('vAc').hidden = kind !== 'ac'; $('vResp').hidden = kind !== 'resp'; $('vDc').hidden = kind !== 'dc';
+  [['tAc', 'ac'], ['tResp', 'resp'], ['tDc', 'dc']].forEach(([id, k]) => $(id).setAttribute('aria-current', kind === k ? 'page' : 'false'));
+}
+let lt = performance.now();
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - lt) / 1000); lt = ts;
+  if (kind === 'ac' && !reduce) {
+    const R = +$('r2').value, va = +$('va').value;
+    // rotor accelerates until motor torque balances a light load
+    const T = va * Tind(1 - wAc, R) - 0.15 * wAc - 0.02 * Math.sign(wAc);
+    wAc = Math.max(0, wAc + T * dt * 1.5);
+    if (va === 0) wAc = Math.max(0, wAc - dt * 0.8);
+    rotA += wAc * dt * 720; const g = $('acG'); if (g) g.setAttribute('transform', `rotate(${rotA} 160 70)`);
+    $('kW').textContent = f(wAc);
+  }
+  requestAnimationFrame(loop);
+}
+addEventListener('hashchange', setKind);
+drawAc(); drawAcRotor(); rst(); drawDc(); setKind(); requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>

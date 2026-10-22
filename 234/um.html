@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>محاكي المحرك العام والتنافري</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+[hidden]{display:none!important}
+/* Layout: one column on phones — motor first, controls under it, then table + waveform; two columns from 900px */
+:root{
+  --bg:#f5f8f8; --surface:#ffffff; --fg:#1f2d33; --muted:#5d6e75; --line:#d6e1e2;
+  --teal:#0A7C78; --teal-soft:#d9eeec; --blue:#1F7892; --mark:#b5651d; --steel:#c9d3d7; --steel-d:#8d9ca2;
+  --ok:#2e7d4f; --bad:#b23b3b;
+  --f-body:"Cairo", "Segoe UI", Tahoma, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --fg:#e4eef0; --muted:#97aab0; --line:#2a3a3f;
+  --teal:#3fb3ad; --teal-soft:#16403e; --blue:#5ab2cc; --mark:#e09a55; --steel:#3a4a50; --steel-d:#6c7f86;
+  --ok:#5cc489; --bad:#e07b7b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7;direction:rtl;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:16px 32px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:2px}
+.kicker{color:var(--teal);font-weight:600;font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.35;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
+.grid{display:grid;gap:16px}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:grid;gap:12px;align-content:start}
+.panel h2{margin:0;font-size:15px;color:var(--teal)}
+.motor svg{direction:ltr;width:100%;max-width:380px;margin:0 auto;display:block}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.readout div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.readout b{display:block;font-family:var(--f-mono);font-size:18px;color:var(--fg);direction:ltr}
+.readout span{font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:14px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.btn{border:1px solid var(--teal);background:var(--teal);color:#fff;font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:8px 16px;cursor:pointer;min-height:42px}
+.btn.ghost{background:transparent;color:var(--teal)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+label{font-size:13px;color:var(--muted)}
+select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+input[type=range]{accent-color:var(--teal);width:140px}
+.formula{font-family:var(--f-mono);direction:ltr;text-align:center;background:var(--teal-soft);border-radius:8px;padding:8px;font-size:clamp(13px,3.6vw,16px);overflow-wrap:anywhere}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;direction:ltr;margin:0 auto;font-family:var(--f-mono);font-size:15px}
+th,td{border:1px solid var(--line);padding:3px 14px;text-align:center}
+th{color:var(--teal);background:var(--teal-soft)}
+td.n{color:var(--muted);font-size:12px;border:0;padding-inline:6px}
+tr.cur td:not(.n){background:var(--teal);color:#fff}
+.wave{overflow-x:auto;direction:ltr}
+.wave svg{display:block;width:100%}
+.note{font-size:13px;color:var(--muted);margin:0}
+.predict{border:1px dashed var(--teal);border-radius:10px;padding:10px;display:grid;gap:8px}
+.predict[hidden]{display:none!important}
+.opts{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
+.opts button{font-family:var(--f-mono);font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer}
+.fb{font-size:14px;margin:0;min-height:1.7em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-left:4px}
+footer{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs a{text-decoration:none;font-weight:600;font-size:14px;color:var(--teal);border:1px solid var(--teal);border-radius:999px;padding:4px 14px}
+.tabs a[aria-current="page"]{background:var(--teal);color:#fff}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto}
+.warn{color:var(--bad)}
+</style>
+<style>
+.sl{display:grid;grid-template-columns:8em 1fr 5.5em;gap:8px;align-items:center;font-size:13px}
+.sl input{width:100%;accent-color:var(--teal)}
+.sl output{font-family:var(--f-mono);direction:ltr;text-align:left;font-size:13px}
+.plot svg{display:block;width:100%;direction:ltr}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.kpi div{background:var(--bg);border-radius:8px;padding:6px 8px;text-align:center}
+.kpi b{display:block;font-family:var(--f-mono);font-size:16px;direction:ltr}
+.kpi span{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:3px 12px;cursor:pointer}
+.calc{font-family:var(--f-mono);direction:ltr;font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.9;overflow-x:auto;white-space:pre}
+.inp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;direction:ltr}
+.inp label{display:grid;gap:2px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.inp input{font:inherit;font-family:var(--f-mono);font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:100%}
+</style>
+<div class="wrap">
+  <header>
+    <span class="kicker">الآلات الكهربائية الصغيرة — الوحدة الرابعة</span>
+    <h1 id="h1">محرك التوالي العام</h1>
+    <p class="lead" id="lead"></p>
+    <nav class="tabs" aria-label="نوع المحرك">
+      <a href="#uni" id="tUni">المحرك العام</a>
+      <a href="#rep" id="tRep">المحرك التنافري</a>
+    </nav>
+  </header>
+
+  <div class="grid" id="vUni">
+    <section class="panel">
+      <h2>لماذا يبقى اتجاه العزم ثابتاً على التيار المتردد؟</h2>
+      <div class="plot"><svg id="uWave" viewBox="0 0 600 330" role="img" aria-label="التيار والفيض والعزم"></svg></div>
+      <div class="legend"><span><i style="background:var(--muted)"></i>تيار المنتج والمجال (على التوالي)</span><span><i style="background:var(--blue)"></i>الفيض φ</span><span><i style="background:var(--teal)"></i>العزم T ∝ φ·I</span></div>
+      <div class="row"><div class="seg" role="group" aria-label="المصدر"><button id="sAc" aria-pressed="true">مصدر متردد</button><button id="sDc" aria-pressed="false">مصدر مستمر</button></div>
+      <label><input type="checkbox" id="revField"> عكس توصيل ملف المجال فقط</label></div>
+      <p class="note" id="uExplain" aria-live="polite"></p>
+    </section>
+    <section class="panel">
+      <h2>حاسبة المثال (4-1)</h2>
+      <div class="inp">
+        <label>V1 (V)<input id="V" value="120"></label><label>N (rpm)<input id="N" value="8000"></label>
+        <label>Ia (A)<input id="I" value="17.58"></label><label>cos φ (lag)<input id="pf" value="0.912"></label>
+        <label>Ra (Ω)<input id="Ra" value="1.36"></label><label>Xa (Ω)<input id="Xa" value="1.6"></label>
+        <label>Rs (Ω)<input id="Rs" value="0.65"></label><label>Xs (Ω)<input id="Xs" value="1.2"></label>
+        <label>P losses (W)<input id="PL" value="80"></label>
+      </div>
+      <div class="chips"><button id="ex41">مثال (4-1)</button><button id="ex46">السؤال (س4-6)</button><button id="ex47">السؤال (س4-7)</button></div>
+      <div class="plot"><svg id="uPh" viewBox="0 0 600 250" role="img" aria-label="المخطط الاتجاهي"></svg></div>
+      <div class="calc" id="uCalc"></div>
+    </section>
+  </div>
+
+  <div class="grid" id="vRep" hidden>
+    <section class="panel">
+      <h2>زاوية الفرش α</h2>
+      <svg id="rDraw" viewBox="0 0 320 260" role="img" aria-label="المحرك التنافري" style="width:100%;max-width:380px;margin:0 auto;display:block;direction:ltr"></svg>
+      <div class="sl"><label for="al">زاوية الفرش α</label><input type="range" id="al" min="-90" max="90" step="1" value="20"><output id="oal"></output></div>
+      <div class="chips"><button data-a="0">α = 0 (المعاوقة الصغيرة)</button><button data-a="20">α = 20°</button><button data-a="90">α = 90° (المعاوقة الكبيرة)</button><button data-a="-20">α = −20°</button></div>
+      <p class="note" id="rExplain" aria-live="polite"></p>
+    </section>
+    <section class="panel">
+      <h2>تقسيم ملف الثابت وأثر α</h2>
+      <div class="kpi"><div><b id="kT">0</b><span>ملف التحويل T = A cos α</span></div><div><b id="kF">0</b><span>ملف المجال F = A sin α</span></div><div><b id="kQ">0</b><span>العزم (نسبي)</span></div><div><b id="kI">0</b><span>تيار الثابت (نسبي)</span></div></div>
+      <div class="plot"><svg id="rPlot" viewBox="0 0 600 300" role="img" aria-label="العزم والتيار مع الزاوية"></svg></div>
+      <div class="legend"><span><i style="background:var(--teal)"></i>العزم ∝ T·F</span><span><i style="background:var(--muted)"></i>تيار الثابت</span></div>
+      <p class="note">المنحنيات تقريب توضيحي يبين الاتجاه العام فقط: العزم يتلاشى عند α = 0 وعند α = 90°، وتيار الثابت أكبر ما يكون عند α = 0 وأصغر ما يكون عند α = 90°.</p>
+    </section>
+  </div>
+  <footer id="foot"></footer>
+</div>
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg', $ = id => document.getElementById(id);
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const txt = (p, x, y, s, a = {}) => { const t = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--f-mono)' }, a), p); t.textContent = s; return t; };
+const f = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const path = (svg, pts, a) => el('path', Object.assign({ d: 'M' + pts.map(p => p.join(',')).join(' L'), fill: 'none' }, a), svg);
+
+// ---------- universal waveforms ----------
+let ac = true, ph = 0;
+function drawWave() {
+  const s = $('uWave'); s.textContent = '';
+  const L = 40, R = 590, rows = [[60, 'I'], [160, 'φ'], [270, 'T']];
+  rows.forEach(([y, n]) => { el('line', { x1: L, y1: y, x2: R, y2: y, stroke: 'var(--line)' }, s); txt(s, L - 8, y + 4, n, { 'text-anchor': 'end', 'font-size': 14, fill: 'var(--fg)' }); });
+  const rev = $('revField').checked ? -1 : 1;
+  const I = [], P = [], T = [];
+  let avg = 0;
+  for (let k = 0; k <= 300; k++) {
+    const x = L + k * (R - L) / 300, th = 2 * Math.PI * 2 * k / 300 + ph;
+    const i = ac ? Math.sin(th) : 1, phi = rev * i, t = i * phi;
+    avg += t / 301;
+    I.push([x, 60 - 36 * i]); P.push([x, 160 - 36 * phi]); T.push([x, 270 - 36 * t]);
+  }
+  path(s, I, { stroke: 'var(--muted)', 'stroke-width': 2 }); path(s, P, { stroke: 'var(--blue)', 'stroke-width': 2 }); path(s, T, { stroke: 'var(--teal)', 'stroke-width': 3 });
+  el('line', { x1: L, y1: 270 - 36 * avg, x2: R, y2: 270 - 36 * avg, stroke: 'var(--mark)', 'stroke-dasharray': '5 4' }, s);
+  txt(s, R, 270 - 36 * avg - 6, 'average', { 'text-anchor': 'end', fill: 'var(--mark)' });
+  const sign = avg > 0 ? 'موجب' : 'سالب';
+  $('uExplain').textContent = ac
+    ? `التيار نفسه يمر في المنتج والمجال، فينعكسان معاً في كل نصف دورة؛ حاصل ضربهما يبقى ${sign} الإشارة: عزم نابض بضعف تردد المصدر في اتجاه واحد، وقيمته المتوسطة (الخط البني) تدير المحرك.` + ($('revField').checked ? ' عكس توصيل المجال وحده يعكس إشارة العزم، أي يعكس اتجاه الدوران.' : '')
+    : `على التيار المستمر يكون العزم ثابتاً ${sign} الإشارة.` + ($('revField').checked ? ' عكس توصيل المجال وحده يعكس اتجاه الدوران.' : ' عكس قطبية المصدر كله لا يغير الاتجاه لأن التيارين ينعكسان معاً.');
+}
+$('sAc').onclick = () => { ac = true; $('sAc').setAttribute('aria-pressed', 'true'); $('sDc').setAttribute('aria-pressed', 'false'); drawWave(); };
+$('sDc').onclick = () => { ac = false; $('sDc').setAttribute('aria-pressed', 'true'); $('sAc').setAttribute('aria-pressed', 'false'); drawWave(); };
+$('revField').onchange = drawWave;
+
+// ---------- example calculator ----------
+const C = (re, im) => ({ re, im }), mul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re), sub = (a, b) => C(a.re - b.re, a.im - b.im);
+const mag = a => Math.hypot(a.re, a.im), ang = a => Math.atan2(a.im, a.re) * 180 / Math.PI, pol = (m, d) => C(m * Math.cos(d * Math.PI / 180), m * Math.sin(d * Math.PI / 180));
+function calc() {
+  const v = id => parseFloat($(id).value), k = ['V', 'N', 'I', 'pf', 'Ra', 'Xa', 'Rs', 'Xs', 'PL'].map(v);
+  if (k.some(isNaN)) { $('uCalc').textContent = 'أدخل أرقاماً صحيحة في جميع الحقول.'; return; }
+  const [V, N, Im, pf, Ra, Xa, Rs, Xs, PL] = k;
+  const phi = -Math.acos(Math.min(1, pf)) * 180 / Math.PI, I = pol(Im, phi), Z = C(Ra + Rs, Xa + Xs), IZ = mul(I, Z), E = sub(C(V, 0), IZ);
+  const Pd = mag(E) * Im, Po = Pd - PL, w = 2 * Math.PI * N / 60, To = Po / w, Pin = V * Im * pf, eta = Po / Pin;
+  $('uCalc').textContent =
+    `Ia = ${f(Im)} ∠ ${f(phi)}°   (cos⁻¹ ${pf})\n` +
+    `Za + Zs = ${f(Ra + Rs)} + j${f(Xa + Xs)} = ${f(mag(Z), 3)} ∠ ${f(ang(Z), 2)}°\n` +
+    `Ia·Z = ${f(mag(IZ))} ∠ ${f(ang(IZ))}°\n` +
+    `Ea = V1 − Ia·Z = ${f(mag(E))} ∠ ${f(ang(E))}°  V\n` +
+    `Pd = Ea·Ia = ${f(Pd, 1)} W ;  Po = Pd − PL = ${f(Po, 1)} W\n` +
+    `ωm = 2π·${N}/60 = ${f(w)} rad/s ;  To = ${f(To, 3)} N·m\n` +
+    `Pin = V1·Ia·cosφ = ${f(Pin, 1)} W ;  η = ${f(eta * 100, 1)} %`;
+  // phasor diagram (V1 on the x axis)
+  const s = $('uPh'); s.textContent = '';
+  const sc = 480 / V, ox = 60, oy = 30, P = c => [ox + c.re * sc, oy - c.im * sc];
+  const arrow = (a, b, col, lab) => { el('line', { x1: P(a)[0], y1: P(a)[1], x2: P(b)[0], y2: P(b)[1], stroke: col, 'stroke-width': 2.4, 'marker-end': 'url(#ah)' }, s); if (lab) txt(s, (P(a)[0] + P(b)[0]) / 2, (P(a)[1] + P(b)[1]) / 2 - 6, lab, { fill: col, 'font-size': 13 }); };
+  const d = el('defs', {}, s), m = el('marker', { id: 'ah', markerWidth: 8, markerHeight: 8, refX: 7, refY: 4, orient: 'auto' }, d); el('path', { d: 'M0,0 L8,4 L0,8 Z', fill: 'var(--fg)' }, m);
+  const O = C(0, 0);
+  arrow(O, C(V, 0), 'var(--fg)', 'V1');
+  arrow(O, E, 'var(--teal)', 'Ea');
+  arrow(E, C(V, 0), 'var(--mark)', 'Ia·Z');
+  const Iu = pol(V * 0.45, phi); arrow(O, Iu, 'var(--blue)', 'Ia');
+}
+['V', 'N', 'I', 'pf', 'Ra', 'Xa', 'Rs', 'Xs', 'PL'].forEach(id => $(id).addEventListener('input', calc));
+const load = vals => { Object.entries(vals).forEach(([k, v]) => $(k).value = v); calc(); };
+$('ex41').onclick = () => load({ V: 120, N: 8000, I: 17.58, pf: 0.912, Ra: 1.36, Xa: 1.6, Rs: 0.65, Xs: 1.2, PL: 80 });
+$('ex46').onclick = () => load({ V: 240, N: 12000, I: 6.5, pf: 0.94, Ra: 6.15, Xa: 9.4, Rs: 4.55, Xs: 3.2, PL: 65 });
+$('ex47').onclick = () => load({ V: 220, N: 6000, I: 7, pf: 0.90, Ra: 5.5, Xa: 7.4, Rs: 3.5, Xs: 3.2, PL: 70 });
+
+// ---------- repulsion ----------
+let rot = 0, wRep = 0;
+function drawRep() {
+  const a = +$('al').value; $('oal').textContent = a + '°';
+  const r = a * Math.PI / 180, T = Math.cos(r), F = Math.sin(r), Q = Math.sin(2 * r), I = 0.25 + 0.75 * Math.abs(Math.cos(r));
+  $('kT').textContent = f(T); $('kF').textContent = f(F); $('kQ').textContent = f(Q); $('kI').textContent = f(I);
+  const s = $('rDraw'); s.textContent = '';
+  const cx = 160, cy = 130;
+  el('circle', { cx, cy, r: 110, fill: 'var(--bg)', stroke: 'var(--steel-d)', 'stroke-width': 2 }, s);
+  el('circle', { cx, cy, r: 92, fill: 'var(--surface)', stroke: 'var(--steel-d)' }, s);
+  // stator winding axis (vertical)
+  el('line', { x1: cx, y1: cy - 118, x2: cx, y2: cy + 118, stroke: 'var(--blue)', 'stroke-width': 1.5, 'stroke-dasharray': '6 4' }, s);
+  txt(s, cx + 6, 16, 'stator axis A', { fill: 'var(--blue)' });
+  const g = el('g', { id: 'repRot' }, s);
+  el('circle', { cx, cy, r: 70, fill: 'var(--steel)', stroke: 'var(--fg)' }, g);
+  for (let k = 0; k < 16; k++) { const t = k * Math.PI / 8; el('line', { x1: cx + 54 * Math.sin(t), y1: cy - 54 * Math.cos(t), x2: cx + 70 * Math.sin(t), y2: cy - 70 * Math.cos(t), stroke: 'var(--fg)' }, g); }
+  el('circle', { cx, cy: cy - 60, r: 5, fill: 'var(--mark)' }, g);
+  // brush axis rotated by α (positive α = clockwise in drawing)
+  const bx = 78 * Math.sin(r), by = -78 * Math.cos(r);
+  el('line', { x1: cx - bx, y1: cy - by, x2: cx + bx, y2: cy + by, stroke: 'var(--fg)', 'stroke-width': 2 }, s);
+  [[1], [-1]].forEach(([k]) => el('rect', { x: cx + k * bx - 7, y: cy + k * by - 7, width: 14, height: 14, fill: 'var(--fg)', transform: `rotate(${a} ${cx + k * bx} ${cy + k * by})` }, s));
+  txt(s, cx + bx * 1.18, cy + by * 1.18 + 4, 'brushes', { 'text-anchor': 'middle', fill: 'var(--fg)' });
+  el('path', { d: `M${cx},${cy - 40} A40,40 0 0 ${a >= 0 ? 1 : 0} ${cx + 40 * Math.sin(r)},${cy - 40 * Math.cos(r)}`, fill: 'none', stroke: 'var(--mark)', 'stroke-width': 2 }, s);
+  txt(s, cx + 30 * Math.sin(r / 2) + 6, cy - 46, 'α', { fill: 'var(--mark)', 'font-size': 15 });
+  const ex = a === 0 ? 'α = 0: الفرش على محور ملف الثابت؛ يتلاشى ملف المجال (F = 0) ويتلاشى العزم. المحرك كمحول ثانويه مقصور، فيمر أكبر تيار في الثابت: موقع المعاوقة الصغيرة.'
+    : Math.abs(a) === 90 ? 'α = 90°: يتلاشى ملف التحويل (T = 0) فلا يتولد تيار في المنتج ولا عزم. المحرك كمحول ثانويه مفتوح، فيمر أصغر تيار: موقع المعاوقة الكبيرة. عند بدء الحركة توضع الفرش هنا ثم تُزاح.'
+    : `α = ${a}°: يوجد ملف تحويل وملف مجال معاً فيتولد عزم ${a > 0 ? 'في اتجاه' : 'في الاتجاه المعاكس'}؛ ويدور المحرك في اتجاه معاكس لاتجاه إزاحة الفرش عن موقع المعاوقة الكبيرة. عكس جهة الإزاحة يعكس اتجاه الدوران. ويُضبط المحور عادة بإزاحة 18 إلى 20 درجة كهربائية.`;
+  $('rExplain').textContent = ex;
+  const p = $('rPlot'); p.textContent = '';
+  const L = 50, R = 580, mid = 150, X = d => L + (d + 90) / 180 * (R - L), Y = v => mid - v * 110;
+  [-90, -45, 0, 45, 90].forEach(d => { el('line', { x1: X(d), y1: 30, x2: X(d), y2: 270, stroke: 'var(--line)' }, p); txt(p, X(d), 290, d + '°', { 'text-anchor': 'middle' }); });
+  el('line', { x1: L, y1: mid, x2: R, y2: mid, stroke: 'var(--muted)' }, p);
+  path(p, Array.from({ length: 181 }, (_, i) => [X(i - 90), Y(Math.sin(2 * (i - 90) * Math.PI / 180))]), { stroke: 'var(--teal)', 'stroke-width': 3 });
+  path(p, Array.from({ length: 181 }, (_, i) => [X(i - 90), Y(0.25 + 0.75 * Math.abs(Math.cos((i - 90) * Math.PI / 180)))]), { stroke: 'var(--muted)', 'stroke-width': 2, 'stroke-dasharray': '5 4' });
+  el('line', { x1: X(a), y1: 30, x2: X(a), y2: 270, stroke: 'var(--mark)', 'stroke-width': 2 }, p);
+}
+$('al').oninput = drawRep;
+document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { $('al').value = b.dataset.a; drawRep(); });
+
+const CFG = {
+  uni: { h: 'محرك التوالي العام', lead: 'قارن العزم على المصدر المتردد والمستمر، واعرف لماذا يدور المحرك في الاتجاه نفسه، ثم أعد حل المثال (4-1) وارسم المخطط الاتجاهي بأي قيم.', foot: 'المرجع: الحقيبة — القسم (4-1)، المعادلات (4-1) إلى (4-6)، الأشكال (4-1) إلى (4-3)، والمثال (4-1). الأهداف 4-1 إلى 4-5.' },
+  rep: { h: 'المحرك التنافري', lead: 'حرّك محور الفرش وراقب انقسام ملف الثابت إلى ملف تحويل وملف مجال، ومتى يتولد العزم، وكيف ينعكس الاتجاه.', foot: 'المرجع: الحقيبة — القسم (4-2)، الشكل (4-4). الأهداف 4-7 إلى 4-10.' } };
+let kind = 'uni';
+function setKind() {
+  kind = location.hash === '#rep' ? 'rep' : 'uni';
+  $('h1').textContent = CFG[kind].h; $('lead').textContent = CFG[kind].lead; $('foot').textContent = CFG[kind].foot;
+  $('vUni').hidden = kind !== 'uni'; $('vRep').hidden = kind !== 'rep';
+  $('tUni').setAttribute('aria-current', kind === 'uni' ? 'page' : 'false'); $('tRep').setAttribute('aria-current', kind === 'rep' ? 'page' : 'false');
+}
+let lt = performance.now();
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - lt) / 1000); lt = ts;
+  if (!reduce) {
+    if (kind === 'uni' && ac) { ph -= dt * 2.5; drawWave(); }
+    if (kind === 'rep') {
+      const a = +$('al').value * Math.PI / 180, target = Math.sin(2 * a);
+      wRep += (target - wRep) * dt * 1.5; rot += wRep * dt * 240;
+      const g = $('repRot'); if (g) g.setAttribute('transform', `rotate(${rot} 160 130)`);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+addEventListener('hashchange', setKind);
+drawWave(); calc(); drawRep(); setKind(); requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
